@@ -51,44 +51,178 @@ function App() {
     setMediaList((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // 원래 방식: 모바일 기본 공유(카카오톡 전송) 및 클립보드 복사
-  const handleShareKakao = () => {
+  // 🖼️ 외부 라이브러리 없이 순수 Canvas API로 PNG 이미지 생성
+  const handleGeneratePngImage = async () => {
     if (!member) {
       alert('회원 이름을 입력해 주세요.');
       return;
     }
 
-    const exerciseDetails = exercises
-      .filter((e) => e.name)
-      .map((e) => `• ${e.name}: ${e.weight}kg / ${e.reps}회 / ${e.sets}세트`)
-      .join('\n');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
 
-    const progressPercent = Math.round((completedSessions / monthlyTarget) * 100);
+    // 캔버스 크기 지정 (고화질 그래픽 카드 스타일)
+    const width = 600;
+    
+    // 세로 길이 자동 계산
+    let height = 380 + (exercises.length * 40) + (memo ? 80 : 0) + (mediaList.length * 280);
+    canvas.width = width;
+    canvas.height = height;
 
-    const shareText = 
-`🏆 [VIP PT 리포트]
-👤 회원명: ${member}님 (${sessionCount}회차)
-💰 세션 가치: Premium PT (회당 100,000원)
-📊 월간 목표 달성률: ${completedSessions}/${monthlyTarget}회 (${progressPercent}%)
+    // 1. 배경 채우기
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(0, 0, width, height);
 
-🏋️‍♂️ [오늘의 수행 운동]
-${exerciseDetails || '기록 없음'}
+    // 2. 상단 배지 및 타이틀
+    ctx.fillStyle = '#f59e0b';
+    ctx.beginPath();
+    ctx.roundRect(width / 2 - 80, 20, 160, 24, 12);
+    ctx.fill();
 
-📝 [트레이너 피드백]
-${memo || '수고 많으셨습니다!'}
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('PREMIUM PT REPORT', width / 2, 36);
 
-📷 미디어 첨부: ${mediaList.length}건`;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.fillText('VIP 퍼스널 트레이닝 리포트', width / 2, 75);
 
-    if (navigator.share) {
-      navigator.share({
-        title: `${member}님 PT 리포트`,
-        text: shareText,
-        url: window.location.href,
-      }).catch(() => {});
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '12px sans-serif';
+    ctx.fillText('단일 회당 100,000원 상당의 맞춤형 케어 서비스', width / 2, 95);
+
+    // 구분선
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(30, 115);
+    ctx.lineTo(width - 30, 115);
+    ctx.stroke();
+
+    // 3. 회원 정보
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.fillText(`👤 회원명: ${member}님 (${sessionCount}회차)`, 40, 145);
+
+    // 4. 월간 달성률 그래프
+    const progressPercent = Math.min(Math.round((completedSessions / monthlyTarget) * 100), 100);
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(30, 165, width - 60, 60);
+
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText(`📊 월간 목표 달성률: ${completedSessions}/${monthlyTarget}회 (${progressPercent}%)`, 45, 190);
+
+    // 게이지 바
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(45, 200, width - 90, 10);
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillRect(45, 200, ((width - 90) * progressPercent) / 100, 10);
+
+    // 5. 운동 세부 기록
+    let currentY = 255;
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = 'bold 15px sans-serif';
+    ctx.fillText('🏋️‍♂️ 오늘의 세부 운동 기록', 30, currentY);
+
+    currentY += 15;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '13px sans-serif';
+
+    const validExercises = exercises.filter((e) => e.name);
+    if (validExercises.length === 0) {
+      currentY += 25;
+      ctx.fillText('• 등록된 운동 기록이 없습니다.', 40, currentY);
     } else {
-      navigator.clipboard.writeText(shareText);
-      alert('리포트 요약 내용이 복사되었습니다! 카카오톡 대화창에 붙여넣기(Paste) 해주세요.');
+      validExercises.forEach((item) => {
+        currentY += 30;
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(30, currentY - 20, width - 60, 32);
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(`• ${item.name}`, 40, currentY);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillText(`${item.weight}kg / ${item.reps}회 / ${item.sets}세트`, width - 200, currentY);
+      });
     }
+
+    // 6. 수업 총평
+    if (memo) {
+      currentY += 45;
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 15px sans-serif';
+      ctx.fillText('📝 수업 총평 및 피드백', 30, currentY);
+
+      currentY += 10;
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(30, currentY, width - 60, 50);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '13px sans-serif';
+      ctx.fillText(memo, 40, currentY + 30);
+      currentY += 50;
+    }
+
+    // 7. 이미지/미디어 로드 후 캔버스에 그리기
+    for (let i = 0; i < mediaList.length; i++) {
+      const media = mediaList[i];
+      if (media.type === 'image') {
+        currentY += 35;
+        try {
+          const img = new Image();
+          img.src = media.url;
+          await new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+          
+          // 이미지 그리기 (높이 비례 계산)
+          const imgHeight = 200;
+          ctx.drawImage(img, 30, currentY, width - 60, imgHeight);
+          currentY += imgHeight + 10;
+
+          if (media.caption) {
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '12px sans-serif';
+            ctx.fillText(`📷 ${media.caption}`, 40, currentY);
+            currentY += 15;
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+
+    // PNG 변환 및 전송/다운로드 처리
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+
+      const fileName = `${member}_PT리포트_${sessionCount}회차.png`;
+      const file = new File([blob], fileName, { type: 'image/png' });
+
+      // 모바일 기본 공유창(카카오톡 전송)
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: `${member}님 PT 리포트`,
+            text: `${member}님의 VIP PT 리포트 이미지입니다.`
+          });
+          return;
+        } catch (err) {
+          console.log('공유 취소:', err);
+        }
+      }
+
+      // PC 및 공유 미지원 모바일 웹 다운로드
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      link.click();
+      alert('PNG 이미지 파일이 생성 및 저장되었습니다! 카카오톡 대화창에 파일/이미지를 첨부해 주세요.');
+    }, 'image/png');
   };
 
   const progressPercentage = Math.min(Math.round((completedSessions / monthlyTarget) * 100), 100);
@@ -104,7 +238,7 @@ ${memo || '수고 많으셨습니다!'}
           <p style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>단일 회당 100,000원 상당의 맞춤형 케어 서비스</p>
         </div>
 
-        {/* 회원 정보 & 회차 */}
+        {/* 회원 정보 */}
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '20px' }}>
           <div>
             <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>회원명</label>
@@ -127,7 +261,7 @@ ${memo || '수고 많으셨습니다!'}
           </div>
         </div>
 
-        {/* 월간 목표 진행 상황 */}
+        {/* 월간 목표 진행률 */}
         <div style={{ backgroundColor: '#0f172a', padding: '16px', borderRadius: '12px', border: '1px solid #334155', marginBottom: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px' }}>
             <span style={{ color: '#cbd5e1', fontWeight: '600' }}>📊 월간 출석 및 목표 달성률</span>
@@ -154,7 +288,7 @@ ${memo || '수고 많으셨습니다!'}
           </div>
         </div>
 
-        {/* 운동 세부 정보 */}
+        {/* 운동 상세 기록 */}
         <div style={{ marginBottom: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <label style={{ fontSize: '14px', fontWeight: '700', color: '#f8fafc' }}>🏋️‍♂️ 세부 운동 기록</label>
@@ -210,7 +344,7 @@ ${memo || '수고 많으셨습니다!'}
           ))}
         </div>
 
-        {/* 코칭 피드백 */}
+        {/* 수업 총평 */}
         <div style={{ marginBottom: '24px' }}>
           <label style={{ fontSize: '14px', fontWeight: '700', color: '#f8fafc', display: 'block', marginBottom: '8px' }}>📝 수업 총평 및 코칭 피드백</label>
           <textarea 
@@ -275,10 +409,10 @@ ${memo || '수고 많으셨습니다!'}
           ))}
         </div>
 
-        {/* 카카오톡 전송 버튼 */}
+        {/* 🖼️ 라이브러리 없이 PNG 이미지 생성 및 카카오톡 전송 버튼 */}
         <button 
           type="button" 
-          onClick={handleShareKakao}
+          onClick={handleGeneratePngImage}
           style={{
             width: '100%',
             padding: '16px',
@@ -293,10 +427,10 @@ ${memo || '수고 많으셨습니다!'}
             alignItems: 'center',
             justifyContent: 'center',
             gap: '8px',
-            boxShadow: '0 4px 12px rgba(254, 229, 0, 0.2)'
+            boxShadow: '0 4px 12px rgba(254, 229, 0, 0.3)'
           }}
         >
-          💬 카카오톡으로 리포트 전송하기
+          💬 PNG 이미지 생성 및 카카오톡 전송
         </button>
 
       </div>
