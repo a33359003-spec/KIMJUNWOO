@@ -1,244 +1,206 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 function App() {
-  const [member, setMember] = useState('');
-  const [sessionCount, setSessionCount] = useState(1);
-  const [monthlyTarget, setMonthlyTarget] = useState(12);
-  const [completedSessions, setCompletedSessions] = useState(5);
-  
+  const canvasRef = useRef(null);
+
+  // 1. 기본 정보
+  const [memberName, setMemberName] = useState('김준우 회원님');
+  const [trainerName, setTrainerName] = useState('황승준');
+  const [date, setDate] = useState('2024.05.23 (목)');
+
+  // 2. 운동 요약
+  const [calories, setCalories] = useState('420');
+  const [duration, setDuration] = useState('60');
+  const [avgHeartRate, setAvgHeartRate] = useState('126');
+  const [intensity, setIntensity] = useState('중상');
+
+  // 3. 운동 세부 기록
   const [exercises, setExercises] = useState([
-    { name: '바벨 스쿼트', weight: '80', reps: '10', sets: '4' },
-    { name: '루마니안 데드리프트', weight: '100', reps: '8', sets: '3' }
+    {
+      name: '1. 덤벨 로우 (Dumbbell Row)',
+      sets: [
+        { set: 1, weight: '14', reps: '12', rpe: '6' },
+        { set: 2, weight: '16', reps: '10', rpe: '7' },
+        { set: 3, weight: '18', reps: '8', rpe: '8' }
+      ]
+    },
+    {
+      name: '2. 랫 풀다운 (Lat Pulldown)',
+      sets: [
+        { set: 1, weight: '40', reps: '12', rpe: '6' },
+        { set: 2, weight: '45', reps: '10', rpe: '7' }
+      ]
+    }
   ]);
 
-  const [memo, setMemo] = useState('');
-  const [dietFeedback, setDietFeedback] = useState(''); 
-  const [monthlyChecklist, setMonthlyChecklist] = useState('컨디션 양호 / 수면 시간 유지 / 수분 섭취 2L 이상 달성 중'); 
-  const [mediaList, setMediaList] = useState([]);
+  // 4. 순수 브라우저 Canvas API로 PNG 생성 및 다운로드
+  const handleGeneratePngImage = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-  const handleAddExercise = () => {
-    setExercises([...exercises, { name: '', weight: '', reps: '', sets: '' }]);
+    const ctx = canvas.getContext('2d');
+    
+    // 캔버스 크기 지정
+    canvas.width = 500;
+    canvas.height = 750;
+
+    // 1) 크림색 배경 칠하기
+    ctx.fillStyle = '#f2efea';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 2) 타이틀 영역
+    ctx.fillStyle = '#111111';
+    ctx.font = 'bold 20px sans-serif';
+    ctx.fillText(`🏋️‍♂️ ${memberName} PT 리포트`, 24, 45);
+
+    ctx.fillStyle = '#666666';
+    ctx.font = '12px sans-serif';
+    ctx.fillText(`트레이너: ${trainerName} | 날짜: ${date}`, 24, 68);
+
+    // 구분선
+    ctx.strokeStyle = '#d0ccc6';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(24, 85);
+    ctx.lineTo(476, 85);
+    ctx.stroke();
+
+    // 3) 오늘 운동 요약 카드 박스
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.roundRect(24, 100, 452, 90, 10);
+    ctx.fill();
+
+    ctx.fillStyle = '#111111';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText('오늘의 운동 요약', 40, 125);
+
+    ctx.font = '12px sans-serif';
+    ctx.fillStyle = '#444444';
+    ctx.fillText(`🔥 칼로리: ${calories} kcal`, 40, 155);
+    ctx.fillText(`🕒 시간: ${duration} 분`, 160, 155);
+    ctx.fillStyle = '#d97706';
+    ctx.fillText(`❤️ 심박수: ${avgHeartRate} bpm`, 270, 155);
+    ctx.fillStyle = '#444444';
+    ctx.fillText(`📊 강도: ${intensity}`, 390, 155);
+
+    // 4) 세부 운동 기록
+    ctx.fillStyle = '#111111';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText('세부 운동 기록', 24, 220);
+
+    let startY = 240;
+
+    exercises.forEach((ex) => {
+      // 운동 종목 카드
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.roundRect(24, startY, 452, 30 + ex.sets.length * 22, 8);
+      ctx.fill();
+
+      ctx.fillStyle = '#111111';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText(ex.name, 36, startY + 20);
+
+      // 세트 정보
+      ex.sets.forEach((s, i) => {
+        const lineY = startY + 40 + i * 20;
+        ctx.fillStyle = '#555555';
+        ctx.font = '11px sans-serif';
+        ctx.fillText(
+          `${s.set}세트 :  ${s.weight}kg  /  ${s.reps}회  /  RPE ${s.rpe}`,
+          46,
+          lineY
+        );
+      });
+
+      startY += 40 + ex.sets.length * 22 + 12;
+    });
+
+    // 5) 이미지 다운로드 실행
+    const imageURI = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.href = imageURI;
+    link.download = `${memberName}_운동일지_${date}.png`;
+    link.click();
   };
 
-  const handleExerciseChange = (index, field, value) => {
-    const updated = [...exercises];
-    updated[index][field] = value;
-    setExercises(updated);
-  };
-
-  const handleRemoveExercise = (index) => {
-    setExercises(exercises.filter((_, i) => i !== index));
-  };
-
-  const handleMediaUpload = (e) => {
-    if (e.target.files) {
-      const filesArray = Array.from(e.target.files);
-      const newMediaItems = filesArray.map((file) => ({
-        id: Math.random().toString(36).substr(2, 9),
-        url: URL.createObjectURL(file),
-        type: file.type.startsWith('video/') ? 'video' : 'image',
-        caption: ''
-      }));
-      setMediaList((prev) => [...prev, ...newMediaItems]);
-    }
-  };
-
-  const handleCaptionChange = (id, text) => {
-    setMediaList((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, caption: text } : item))
-    );
-  };
-
-  const handleRemoveMedia = (id) => {
-    setMediaList((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  const handleGeneratePngImage = async () => {
-    // PNG 생성 로직은 이전과 동일 (생략)
-    alert('PNG 이미지 생성 및 전송 기능이 실행됩니다!');
-  };
-
-  const progressPercentage = Math.min(Math.round((completedSessions / monthlyTarget) * 100), 100);
-
-  // 입력 필드 공통 스타일
   const inputStyle = {
     width: '100%',
-    padding: '12px',
-    borderRadius: '8px',
+    padding: '8px',
+    borderRadius: '6px',
     border: '1px solid #dcdcdc',
-    backgroundColor: '#ffffff', // 화이트 입력창
-    color: '#111111',
-    boxSizing: 'border-box',
-    fontSize: '13px'
-  };
-
-  const labelStyle = {
     fontSize: '12px',
-    color: '#666666', // 그레이 라벨
-    display: 'block',
-    marginBottom: '6px'
+    boxSizing: 'border-box'
   };
 
   return (
-    // 1. 최외곽 배경 (어두운 색 유지)
-    <div style={{ backgroundColor: '#111111', minHeight: '100vh', color: '#f8fafc', padding: '24px 16px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
-      
-      {/* 2. 메인 크림색 카드 컨테이너 (고객 전송 리포트 영역) */}
-      <div style={{ maxWidth: '520px', margin: '0 auto', backgroundColor: '#f2efea', borderRadius: '16px', border: '1px solid #e0ddda', padding: '24px', color: '#111111', boxShadow: '0 15px 30px rgba(0,0,0,0.5)' }}>
+    <div style={{ backgroundColor: '#111111', minHeight: '100vh', padding: '20px 10px', color: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+      <div style={{ maxWidth: '520px', margin: '0 auto', backgroundColor: '#1c1c1c', borderRadius: '16px', padding: '20px' }}>
         
-        {/* 상단 블랙 헤더 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', backgroundColor: '#1c1c1c', borderRadius: '12px', padding: '16px', marginBottom: '20px', color: '#ffffff' }}>
-          <div>
-            <span style={{ backgroundColor: '#f59e0b', color: '#000', fontSize: '11px', fontWeight: '800', padding: '3px 8px', borderRadius: '12px', letterSpacing: '1px' }}>PREMIUM PT REPORT</span>
-            <h1 style={{ fontSize: '22px', fontWeight: '700', marginTop: '8px', color: '#ffffff', margin: '8px 0 0' }}>VIP 퍼스널 트레이닝 리포트</h1>
-            <p style={{ color: '#aaaaaa', fontSize: '12px', marginTop: '4px', margin: '4px 0 0' }}>단일 회당 100,000원 상당의 맞춤형 케어 서비스</p>
-          </div>
+        {/* 숨겨진 이미지 생성용 캔버스 */}
+        <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+        {/* 상단 헤더 */}
+        <div style={{ borderBottom: '1px solid #333333', paddingBottom: '12px', marginBottom: '20px' }}>
+          <span style={{ fontSize: '11px', color: '#d4af37', fontWeight: '800' }}>PREMIUM PT</span>
+          <h1 style={{ fontSize: '22px', fontWeight: '800', margin: '4px 0', color: '#ffffff' }}>회원 운동 일지</h1>
         </div>
 
-        {/* --- 여기부터 하단 입력 화면까지 크림색 테마 적용 --- */}
-
-        {/* 회원 정보 & 수업 회차 */}
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '20px' }}>
-          <div>
-            <label style={labelStyle}>회원명</label>
-            <input 
-              type="text" 
-              placeholder="예: 김준우 회원님" 
-              value={member}
-              onChange={(e) => setMember(e.target.value)}
-              style={inputStyle}
-            />
-          </div>
-          <div>
-            <label style={labelStyle}>수업 회차</label>
-            <input 
-              type="number" 
-              value={sessionCount}
-              onChange={(e) => setSessionCount(e.target.value)}
-              style={{...inputStyle, textAlign: 'center'}}
-            />
-          </div>
-        </div>
-
-        {/* 월간 목표 진행률 */}
-        <div style={{ backgroundColor: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #eee', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px', color: '#333' }}>
-            <span style={{ fontWeight: '600' }}>📊 월간 출석 및 목표 달성률</span>
-            <span style={{ color: '#38bdf8', fontWeight: '700' }}>{completedSessions} / {monthlyTarget}회 ({progressPercentage}%)</span>
-          </div>
-          <div style={{ width: '100%', backgroundColor: '#eee', height: '10px', borderRadius: '5px', overflow: 'hidden' }}>
-            <div style={{ width: `${progressPercentage}%`, backgroundColor: '#38bdf8', height: '100%', transition: 'width 0.3s ease' }}></div>
-          </div>
-          <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-            <input 
-              type="number" 
-              placeholder="진행" 
-              value={completedSessions} 
-              onChange={(e) => setCompletedSessions(Number(e.target.value))}
-              style={{...inputStyle, padding: '8px', width: '50%'}}
-            />
-            <input 
-              type="number" 
-              placeholder="목표" 
-              value={monthlyTarget} 
-              onChange={(e) => setMonthlyTarget(Number(e.target.value))}
-              style={{...inputStyle, padding: '8px', width: '50%'}}
-            />
-          </div>
-        </div>
-
-        {/* 📋 월간 종합 점검표 */}
-        <div style={{ marginBottom: '24px' }}>
-          <label style={{ fontSize: '14px', fontWeight: '700', color: '#111', display: 'block', marginBottom: '8px' }}>📋 월간 종합 점검표</label>
-          <input 
-            type="text" 
-            placeholder="컨디션/수면/수분 등" 
-            value={monthlyChecklist}
-            onChange={(e) => setMonthlyChecklist(e.target.value)}
-            style={inputStyle}
-          />
-        </div>
-
-        {/* 🏋️‍♂️ 세부 운동 기록 */}
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <label style={{ fontSize: '14px', fontWeight: '700', color: '#111' }}>🏋️‍♂️ 세부 운동 기록</label>
-            <button 
-              type="button" 
-              onClick={handleAddExercise}
-              style={{ padding: '6px 12px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: '600' }}
-            >
-              + 종목 추가
-            </button>
+        {/* 크림색 리포트 카카오 미리보기 영역 */}
+        <div style={{ backgroundColor: '#f2efea', borderRadius: '14px', padding: '20px', color: '#111111' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '12px' }}>🏋️‍♂️ {memberName} PT 리포트</h2>
+          
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '12px', marginBottom: '12px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>오늘의 운동 요약</div>
+            <div style={{ fontSize: '11px', color: '#444' }}>
+              🔥 {calories} kcal | 🕒 {duration}분 | ❤️ <span style={{ color: '#d97706', fontWeight: 'bold' }}>{avgHeartRate} bpm</span> | 📊 {intensity}
+            </div>
           </div>
 
-          {exercises.map((item, index) => (
-            <div key={index} style={{ backgroundColor: '#ffffff', padding: '12px', borderRadius: '8px', border: '1px solid #eee', marginBottom: '10px' }}>
-              <input 
-                type="text" 
-                placeholder="운동 종목 이름" 
-                value={item.name} 
-                onChange={(e) => handleExerciseChange(index, 'name', e.target.value)}
-                style={{...inputStyle, marginBottom: '8px', padding: '8px'}}
-              />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '6px', alignItems: 'center' }}>
-                <input type="text" placeholder="kg" value={item.weight} onChange={(e) => handleExerciseChange(index, 'weight', e.target.value)} style={{...inputStyle, padding: '8px', textAlign: 'center'}} />
-                <input type="text" placeholder="회" value={item.reps} onChange={(e) => handleExerciseChange(index, 'reps', e.target.value)} style={{...inputStyle, padding: '8px', textAlign: 'center'}} />
-                <input type="text" placeholder="세트" value={item.sets} onChange={(e) => handleExerciseChange(index, 'sets', e.target.value)} style={{...inputStyle, padding: '8px', textAlign: 'center'}} />
-                <button type="button" onClick={() => handleRemoveExercise(index)} style={{ padding: '8px', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>✕</button>
-              </div>
+          <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>세부 운동 기록</div>
+          {exercises.map((ex, idx) => (
+            <div key={idx} style={{ backgroundColor: '#ffffff', borderRadius: '8px', padding: '10px', marginBottom: '8px', fontSize: '11px' }}>
+              <strong>{ex.name}</strong>
+              {ex.sets.map((s, sIdx) => (
+                <div key={sIdx} style={{ color: '#666', marginTop: '2px' }}>
+                  {s.set}세트: {s.weight}kg / {s.reps}회 / RPE {s.rpe}
+                </div>
+              ))}
             </div>
           ))}
         </div>
 
-        {/* 🥗 식단 관리 및 피드백 */}
-        <div style={{ marginBottom: '24px' }}>
-          <label style={{ fontSize: '14px', fontWeight: '700', color: '#111', display: 'block', marginBottom: '8px' }}>🥗 식단 관리 및 피드백</label>
-          <textarea 
-            rows="2" 
-            placeholder="단백질 섭취 유지 등" 
-            value={dietFeedback}
-            onChange={(e) => setDietFeedback(e.target.value)}
-            style={{...inputStyle, height: 'auto'}}
-          />
-        </div>
-
-        {/* 📝 수업 총평 및 코칭 피드백 */}
-        <div style={{ marginBottom: '24px' }}>
-          <label style={{ fontSize: '14px', fontWeight: '700', color: '#111', display: 'block', marginBottom: '8px' }}>📝 수업 총평 및 코칭 피드백</label>
-          <textarea 
-            rows="2" 
-            placeholder="자세 보정 포인트 등" 
-            value={memo}
-            onChange={(e) => setMemo(e.target.value)}
-            style={{...inputStyle, height: 'auto'}}
-          />
-        </div>
-
-        {/* 📷 운동 미디어 첨부 */}
-        <div style={{ marginBottom: '28px' }}>
-          <label style={{ fontSize: '14px', fontWeight: '700', color: '#111', display: 'block', marginBottom: '8px' }}>📷 운동 미디어 첨부 (여러 장 가능)</label>
-          <label htmlFor="multi-media-upload" style={{ padding: '14px', backgroundColor: '#3b82f6', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', display: 'block', textAlign: 'center', boxSizing: 'border-box', border: '1px dashed #60a5fa' }}>
-            + 앨범에서 사진/동영상 선택
-          </label>
-          <input id="multi-media-upload" type="file" multiple onChange={handleMediaUpload} style={{ display: 'none' }} />
-
-          {mediaList.map((media) => (
-            <div key={media.id} style={{ marginTop: '16px', backgroundColor: '#ffffff', padding: '12px', borderRadius: '8px', border: '1px solid #eee' }}>
-              {media.type === 'image' ? <img src={media.url} alt="첨부" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '6px' }} /> : <video src={media.url} controls style={{ width: '100%', maxHeight: '200px', borderRadius: '6px' }} />}
-              <input type="text" placeholder="설명 입력" value={media.caption} onChange={(e) => handleCaptionChange(media.id, e.target.value)} style={{...inputStyle, padding: '8px', marginTop: '8px'}} />
-              <button type="button" onClick={() => handleRemoveMedia(media.id)} style={{ marginTop: '8px', width: '100%', padding: '6px', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>삭제</button>
+        {/* 하단 스마트폰 입력창 */}
+        <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '14px', marginTop: '20px', color: '#111' }}>
+          <h4 style={{ fontSize: '13px', fontWeight: '800', margin: '0 0 10px 0', color: '#2563eb' }}>📱 수업 중 즉시 입력</h4>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px' }}>
+            <div>
+              <label style={{ fontSize: '10px', color: '#666' }}>칼로리</label>
+              <input type="number" value={calories} onChange={(e) => setCalories(e.target.value)} style={inputStyle} />
             </div>
-          ))}
+            <div>
+              <label style={{ fontSize: '10px', color: '#666' }}>시간(분)</label>
+              <input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} style={inputStyle} />
+            </div>
+            <div>
+              <label style={{ fontSize: '10px', color: '#d97706', fontWeight: 'bold' }}>심박수</label>
+              <input type="number" value={avgHeartRate} onChange={(e) => setAvgHeartRate(e.target.value)} style={{...inputStyle, borderColor: '#f59e0b', fontWeight: 'bold'}} />
+            </div>
+            <div>
+              <label style={{ fontSize: '10px', color: '#666' }}>강도</label>
+              <input type="text" value={intensity} onChange={(e) => setIntensity(e.target.value)} style={inputStyle} />
+            </div>
+          </div>
         </div>
 
-        {/* 전송 버튼 */}
+        {/* 전송용 이미지 다운로드 버튼 */}
         <button 
           type="button" 
           onClick={handleGeneratePngImage}
-          style={{ width: '100%', padding: '16px', backgroundColor: '#fee500', color: '#000000', border: 'none', borderRadius: '10px', fontWeight: '800', fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(254, 229, 0, 0.3)' }}
+          style={{ width: '100%', marginTop: '16px', padding: '16px', backgroundColor: '#fee500', color: '#000000', border: 'none', borderRadius: '10px', fontWeight: '800', fontSize: '15px', cursor: 'pointer' }}
         >
-          💬 PNG 이미지 생성 및 카카오톡 전송
+          💬 PNG 이미지 생성 및 다운로드 (카톡 전송용)
         </button>
 
       </div>
