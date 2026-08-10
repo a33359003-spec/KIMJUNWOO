@@ -51,111 +51,148 @@ function App() {
     setMediaList((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // 🖼️ 외부 라이브러리 없이 순수 Canvas API로 PNG 이미지 생성
+  // 🖼️ 사진 비율 및 높이 자동 계산 PNG 이미지 생성
   const handleGeneratePngImage = async () => {
     if (!member) {
       alert('회원 이름을 입력해 주세요.');
       return;
     }
 
+    // 1. 첨부된 이미지 사전 로드 및 원본 비율(높이) 계산
+    const loadedImages = [];
+    const imageWidth = 540; // 캔버스 내부 이미지 폭
+
+    for (let i = 0; i < mediaList.length; i++) {
+      const media = mediaList[i];
+      if (media.type === 'image') {
+        try {
+          const img = new Image();
+          img.src = media.url;
+          await new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+
+          // 원본 비율에 맞춰 캔버스상 이미지 높이 산출 (찌그러짐 방지)
+          const aspectRatio = img.naturalHeight / img.naturalWidth || 0.75;
+          const calculatedHeight = Math.round(imageWidth * aspectRatio);
+
+          loadedImages.push({
+            imgElement: img,
+            width: imageWidth,
+            height: calculatedHeight,
+            caption: media.caption
+          });
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+
+    // 2. 전체 캔버스 높이 동적 계산 (내용이 길어져도 수직 확장)
+    const width = 600;
+    const validExercises = exercises.filter((e) => e.name);
+    
+    let totalMediaHeight = 0;
+    loadedImages.forEach((item) => {
+      totalMediaHeight += item.height + (item.caption ? 45 : 25);
+    });
+
+    const height = 380 
+      + (validExercises.length * 40) 
+      + (memo ? 90 : 0) 
+      + totalMediaHeight 
+      + 40; // 하단 여백
+
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-
-    // 캔버스 크기 지정 (고화질 그래픽 카드 스타일)
-    const width = 600;
-    
-    // 세로 길이 자동 계산
-    let height = 380 + (exercises.length * 40) + (memo ? 80 : 0) + (mediaList.length * 280);
     canvas.width = width;
     canvas.height = height;
 
-    // 1. 배경 채우기
+    // 배경 채우기
     ctx.fillStyle = '#1e293b';
     ctx.fillRect(0, 0, width, height);
 
-    // 2. 상단 배지 및 타이틀
+    // 헤더 배지 & 타이틀
     ctx.fillStyle = '#f59e0b';
     ctx.beginPath();
-    ctx.roundRect(width / 2 - 80, 20, 160, 24, 12);
+    ctx.roundRect(width / 2 - 80, 24, 160, 24, 12);
     ctx.fill();
 
     ctx.fillStyle = '#000000';
     ctx.font = 'bold 11px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('PREMIUM PT REPORT', width / 2, 36);
+    ctx.fillText('PREMIUM PT REPORT', width / 2, 40);
 
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 22px sans-serif';
-    ctx.fillText('VIP 퍼스널 트레이닝 리포트', width / 2, 75);
+    ctx.fillText('VIP 퍼스널 트레이닝 리포트', width / 2, 80);
 
     ctx.fillStyle = '#94a3b8';
     ctx.font = '12px sans-serif';
-    ctx.fillText('단일 회당 100,000원 상당의 맞춤형 케어 서비스', width / 2, 95);
+    ctx.fillText('단일 회당 100,000원 상당의 맞춤형 케어 서비스', width / 2, 100);
 
     // 구분선
     ctx.strokeStyle = '#334155';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(30, 115);
-    ctx.lineTo(width - 30, 115);
+    ctx.moveTo(30, 120);
+    ctx.lineTo(width - 30, 120);
     ctx.stroke();
 
-    // 3. 회원 정보
+    // 회원 정보
     ctx.textAlign = 'left';
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 16px sans-serif';
-    ctx.fillText(`👤 회원명: ${member}님 (${sessionCount}회차)`, 40, 145);
+    ctx.fillText(`👤 회원명: ${member}님 (${sessionCount}회차)`, 30, 150);
 
-    // 4. 월간 달성률 그래프
+    // 월간 달성률
     const progressPercent = Math.min(Math.round((completedSessions / monthlyTarget) * 100), 100);
     ctx.fillStyle = '#0f172a';
-    ctx.fillRect(30, 165, width - 60, 60);
+    ctx.fillRect(30, 170, width - 60, 60);
 
     ctx.fillStyle = '#cbd5e1';
     ctx.font = 'bold 13px sans-serif';
-    ctx.fillText(`📊 월간 목표 달성률: ${completedSessions}/${monthlyTarget}회 (${progressPercent}%)`, 45, 190);
+    ctx.fillText(`📊 월간 목표 달성률: ${completedSessions}/${monthlyTarget}회 (${progressPercent}%)`, 45, 195);
 
-    // 게이지 바
     ctx.fillStyle = '#334155';
-    ctx.fillRect(45, 200, width - 90, 10);
+    ctx.fillRect(45, 205, width - 90, 10);
     ctx.fillStyle = '#38bdf8';
-    ctx.fillRect(45, 200, ((width - 90) * progressPercent) / 100, 10);
+    ctx.fillRect(45, 205, ((width - 90) * progressPercent) / 100, 10);
 
-    // 5. 운동 세부 기록
-    let currentY = 255;
+    // 운동 세부 기록
+    let currentY = 260;
     ctx.fillStyle = '#38bdf8';
     ctx.font = 'bold 15px sans-serif';
     ctx.fillText('🏋️‍♂️ 오늘의 세부 운동 기록', 30, currentY);
 
-    currentY += 15;
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '13px sans-serif';
-
-    const validExercises = exercises.filter((e) => e.name);
     if (validExercises.length === 0) {
-      currentY += 25;
+      currentY += 30;
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '13px sans-serif';
       ctx.fillText('• 등록된 운동 기록이 없습니다.', 40, currentY);
     } else {
       validExercises.forEach((item) => {
-        currentY += 30;
+        currentY += 35;
         ctx.fillStyle = '#0f172a';
-        ctx.fillRect(30, currentY - 20, width - 60, 32);
+        ctx.fillRect(30, currentY - 22, width - 60, 32);
         
         ctx.fillStyle = '#ffffff';
+        ctx.font = '13px sans-serif';
         ctx.fillText(`• ${item.name}`, 40, currentY);
         ctx.fillStyle = '#38bdf8';
         ctx.fillText(`${item.weight}kg / ${item.reps}회 / ${item.sets}세트`, width - 200, currentY);
       });
     }
 
-    // 6. 수업 총평
+    // 수업 총평
     if (memo) {
       currentY += 45;
       ctx.fillStyle = '#38bdf8';
       ctx.font = 'bold 15px sans-serif';
       ctx.fillText('📝 수업 총평 및 피드백', 30, currentY);
 
-      currentY += 10;
+      currentY += 15;
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(30, currentY, width - 60, 50);
 
@@ -165,50 +202,45 @@ function App() {
       currentY += 50;
     }
 
-    // 7. 이미지/미디어 로드 후 캔버스에 그리기
-    for (let i = 0; i < mediaList.length; i++) {
-      const media = mediaList[i];
-      if (media.type === 'image') {
-        currentY += 35;
-        try {
-          const img = new Image();
-          img.src = media.url;
-          await new Promise((resolve) => {
-            img.onload = resolve;
-            img.onerror = resolve;
-          });
-          
-          // 이미지 그리기 (높이 비례 계산)
-          const imgHeight = 200;
-          ctx.drawImage(img, 30, currentY, width - 60, imgHeight);
-          currentY += imgHeight + 10;
+    // 이미지 그리기 (원본 비율 유지)
+    if (loadedImages.length > 0) {
+      currentY += 45;
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 15px sans-serif';
+      ctx.fillText('📷 운동 사진 및 영상 갤러리', 30, currentY);
 
-          if (media.caption) {
-            ctx.fillStyle = '#94a3b8';
-            ctx.font = '12px sans-serif';
-            ctx.fillText(`📷 ${media.caption}`, 40, currentY);
-            currentY += 15;
-          }
-        } catch (e) {
-          console.error(e);
+      loadedImages.forEach((item) => {
+        currentY += 15;
+        // 사진 렌더링
+        ctx.drawImage(item.imgElement, 30, currentY, item.width, item.height);
+        currentY += item.height;
+
+        // 캡션 렌더링
+        if (item.caption) {
+          currentY += 20;
+          ctx.fillStyle = '#cbd5e1';
+          ctx.font = '12px sans-serif';
+          ctx.fillText(`💬 ${item.caption}`, 35, currentY);
+          currentY += 10;
+        } else {
+          currentY += 10;
         }
-      }
+      });
     }
 
-    // PNG 변환 및 전송/다운로드 처리
+    // PNG 다운로드 및 공유
     canvas.toBlob(async (blob) => {
       if (!blob) return;
 
       const fileName = `${member}_PT리포트_${sessionCount}회차.png`;
       const file = new File([blob], fileName, { type: 'image/png' });
 
-      // 모바일 기본 공유창(카카오톡 전송)
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
             files: [file],
             title: `${member}님 PT 리포트`,
-            text: `${member}님의 VIP PT 리포트 이미지입니다.`
+            text: `${member}님의 VIP PT 리포트입니다.`
           });
           return;
         } catch (err) {
@@ -216,12 +248,11 @@ function App() {
         }
       }
 
-      // PC 및 공유 미지원 모바일 웹 다운로드
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.download = fileName;
       link.click();
-      alert('PNG 이미지 파일이 생성 및 저장되었습니다! 카카오톡 대화창에 파일/이미지를 첨부해 주세요.');
+      alert('PNG 이미지 파일이 정상 생성되었습니다! 카카오톡에 이미지를 첨부해 주세요.');
     }, 'image/png');
   };
 
@@ -409,7 +440,7 @@ function App() {
           ))}
         </div>
 
-        {/* 🖼️ 라이브러리 없이 PNG 이미지 생성 및 카카오톡 전송 버튼 */}
+        {/* 💬 PNG 이미지 생성 및 카카오톡 전송 버튼 */}
         <button 
           type="button" 
           onClick={handleGeneratePngImage}
