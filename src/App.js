@@ -1,7 +1,17 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 function App() {
-  const canvasRef = useRef(null);
+  const cardRef = useRef(null);
+
+  // html2canvas 스크립트 자동 로드
+  useEffect(() => {
+    if (!window.html2canvas) {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
 
   // 1. 기본 회원 정보
   const [memberName, setMemberName] = useState('김준우 회원님');
@@ -70,135 +80,65 @@ function App() {
     setPhotoList(photoList.filter((_, i) => i !== index));
   };
 
-  // 🎨 Canvas로 PNG 이미지 렌더링 함수
-  const drawCanvas = async () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
-
-    const ctx = canvas.getContext('2d');
-    const dynamicHeight = 650 + (exercises.length * 35) + (photoList.length * 160);
-    canvas.width = 540;
-    canvas.height = Math.max(800, dynamicHeight);
-
-    // 배경
-    ctx.fillStyle = '#f2efea';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // 헤더
-    ctx.fillStyle = '#111111';
-    ctx.font = 'bold 20px -apple-system, sans-serif';
-    ctx.fillText(`🏋️‍♂️ ${memberName} PT 리포트`, 24, 45);
-
-    ctx.fillStyle = '#666666';
-    ctx.font = '12px -apple-system, sans-serif';
-    ctx.fillText(`담당: ${trainerName} 트레이너 | 일자: ${date}`, 24, 68);
-
-    // 신체 수치 박스
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.roundRect(24, 85, 492, 45, 8); ctx.fill();
-    ctx.fillStyle = '#111111'; ctx.font = 'bold 12px -apple-system, sans-serif';
-    ctx.fillText(`체중: ${weight}kg (목표: ${targetWeight}kg) | 체지방: ${bodyFat}% | 골격근: ${muscle}kg`, 36, 112);
-
-    // 운동 요약 박스
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.roundRect(24, 140, 492, 45, 8); ctx.fill();
-    ctx.fillStyle = '#111111'; ctx.font = 'bold 12px -apple-system, sans-serif';
-    ctx.fillText(`🔥 ${calories} kcal  |  🕒 ${duration} 분  |  ❤️ 심박수: ${avgHeartRate} bpm  |  강도: ${intensity}`, 36, 167);
-
-    // 수행 운동
-    ctx.fillStyle = '#111111'; ctx.font = 'bold 13px -apple-system, sans-serif';
-    ctx.fillText('오늘 수행한 운동', 24, 210);
-
-    let startY = 222;
-    exercises.forEach((ex) => {
-      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(24, startY, 492, 30, 6); ctx.fill();
-      ctx.fillStyle = '#111111'; ctx.font = '12px -apple-system, sans-serif';
-      ctx.fillText(`• ${ex.name} - ${ex.weight}kg / ${ex.sets}세트 ${ex.reps}회`, 36, startY + 19);
-      startY += 35;
-    });
-
-    // 사진 첨부 및 사진별 피드백 그리기
-    if (photoList.length > 0) {
-      startY += 10;
-      ctx.fillStyle = '#111111'; ctx.font = 'bold 13px -apple-system, sans-serif';
-      ctx.fillText('운동 사진 및 개별 피드백', 24, startY);
-      startY += 12;
-
-      for (let i = 0; i < photoList.length; i++) {
-        const item = photoList[i];
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath(); ctx.roundRect(24, startY, 492, 140, 8); ctx.fill();
-
-        // 이미지 로딩 후 그려넣기
-        await new Promise((resolve) => {
-          const img = new Image();
-          img.onload = () => {
-            ctx.save();
-            ctx.beginPath();
-            ctx.roundRect(36, startY + 15, 110, 110, 6);
-            ctx.clip();
-            ctx.drawImage(img, 36, startY + 15, 110, 110);
-            ctx.restore();
-            resolve();
-          };
-          img.onerror = resolve;
-          img.src = item.url;
-        });
-
-        // 사진 텍스트 및 피드백 내용
-        ctx.fillStyle = '#2563eb'; ctx.font = 'bold 12px -apple-system, sans-serif';
-        ctx.fillText(`사진 ${i + 1} 피드백`, 160, startY + 35);
-
-        ctx.fillStyle = '#333333'; ctx.font = '12px -apple-system, sans-serif';
-        const feedbackText = item.feedback || '피드백 미입력';
-        ctx.fillText(feedbackText, 160, startY + 60);
-
-        startY += 150;
-      }
+  // 📸 리포트 전체를 PNG 이미지로 캡처
+  const captureReportImage = async () => {
+    if (!cardRef.current) return null;
+    
+    // html2canvas 로딩 대기
+    if (!window.html2canvas) {
+      alert('캡처 라이브러리를 불러오는 중입니다. 2초 후 다시 시도해 주세요.');
+      return null;
     }
 
-    // 메모 & 식단
-    startY += 10;
-    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(24, startY, 492, 50, 8); ctx.fill();
-    ctx.fillStyle = '#111111'; ctx.font = 'bold 12px -apple-system, sans-serif';
-    ctx.fillText(`✍️ 메모: ${trainerMemo}`, 36, startY + 30);
-
-    return canvas;
+    try {
+      const canvas = await window.html2canvas(cardRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#f2efea',
+        logging: false
+      });
+      return canvas;
+    } catch (err) {
+      console.error('캡처 에러:', err);
+      alert('이미지 생성 중 오류가 발생했습니다.');
+      return null;
+    }
   };
 
-  // 💬 PNG 이미지로 변환하여 카카오톡 / 모바일 공유
+  // 💬 캡처한 PNG 이미지를 카카오톡 / 모바일 앱으로 직접 전달
   const handleShareToKakao = async () => {
-    const canvas = await drawCanvas();
+    const canvas = await captureReportImage();
     if (!canvas) return;
 
     canvas.toBlob(async (blob) => {
       if (!blob) return;
       const file = new File([blob], `${memberName}_PT리포트.png`, { type: 'image/png' });
 
-      // 모바일 브라우저 이미지 직접 공유 지원 확인
+      // 모바일 공유 지원 시 (이미지 파일 직접 공유)
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
             title: `${memberName} PT 리포트`,
+            text: `[${memberName}] 오늘의 PT 리포트 카드입니다.`,
             files: [file]
           });
         } catch (e) {
           console.log('공유 취소:', e);
         }
       } else {
-        // 모바일 웹/PC에서 파일 다운로드로 전환
+        // 이미지 파일로 다운로드
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = `${memberName}_PT리포트.png`;
         link.click();
-        alert('PNG 이미지 파일이 생성되었습니다! 다운로드된 이미지를 카카오톡으로 전송해 주세요.');
+        alert('PNG 이미지 파일이 다운로드되었습니다! 카카오톡 창에 이미지를 첨부하여 보내주세요.');
       }
     }, 'image/png');
   };
 
-  // 📂 PNG 이미지 파일 다운로드
+  // 📂 PNG 이미지 파일로 다운로드
   const handleGenerateAndDownloadPng = async () => {
-    const canvas = await drawCanvas();
+    const canvas = await captureReportImage();
     if (!canvas) return;
 
     const imageURI = canvas.toDataURL('image/png');
@@ -216,17 +156,14 @@ function App() {
     <div style={{ backgroundColor: '#111111', minHeight: '100vh', padding: '20px 10px', color: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
       <div style={{ maxWidth: '540px', margin: '0 auto', backgroundColor: '#1c1c1c', borderRadius: '16px', padding: '20px' }}>
         
-        {/* 숨겨진 캔버스 (PNG 이미지 변환용) */}
-        <canvas ref={canvasRef} style={{ display: 'none' }} />
-
         {/* 헤더 */}
         <div style={{ borderBottom: '1px solid #333333', paddingBottom: '12px', marginBottom: '20px' }}>
           <span style={{ fontSize: '11px', color: '#d4af37', fontWeight: '800' }}>PREMIUM PT REPORT</span>
           <h1 style={{ fontSize: '22px', fontWeight: '800', margin: '4px 0', color: '#ffffff' }}>VIP 퍼스널 트레이닝 리포트</h1>
         </div>
 
-        {/* 메인 리포트 카드 (크림색 테마) */}
-        <div style={{ backgroundColor: '#f2efea', borderRadius: '14px', padding: '20px', color: '#111111' }}>
+        {/* 📸 캡처 대상: 이미지로 변환될 메인 카드 영역 */}
+        <div ref={cardRef} style={{ backgroundColor: '#f2efea', borderRadius: '14px', padding: '20px', color: '#111111' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <h2 style={{ fontSize: '16px', fontWeight: '800', margin: 0 }}>🏋️‍♂️ {memberName} PT 리포트</h2>
             <span style={{ fontSize: '11px', color: '#666' }}>{date} | {trainerName} 트레이너</span>
@@ -258,16 +195,16 @@ function App() {
             ))}
           </div>
 
-          {/* 첨부 사진 및 개별 사진 피드백 */}
+          {/* 첨부 사진 및 개별 사진 피드백 (이미지 카드 내부 포함) */}
           {photoList.length > 0 && (
             <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '12px', marginBottom: '10px' }}>
               <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>📸 첨부 운동 사진 및 개별 피드백</div>
               {photoList.map((photo, idx) => (
-                <div key={idx} style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'center', backgroundColor: '#f9f9f9', padding: '8px', borderRadius: '8px' }}>
-                  <img src={photo.url} alt={`운동사진 ${idx + 1}`} style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '6px' }} />
+                <div key={idx} style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'flex-start', backgroundColor: '#f9f9f9', padding: '8px', borderRadius: '8px' }}>
+                  <img src={photo.url} alt={`운동사진 ${idx + 1}`} style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '6px', flexShrink: 0 }} />
                   <div style={{ flex: 1, fontSize: '12px', color: '#333' }}>
-                    <strong style={{ color: '#2563eb' }}>사진 {idx + 1} 피드백:</strong>
-                    <div style={{ color: '#444', marginTop: '2px', wordBreak: 'break-all' }}>
+                    <strong style={{ color: '#2563eb', display: 'block', marginBottom: '4px' }}>사진 {idx + 1} 피드백:</strong>
+                    <div style={{ color: '#444', wordBreak: 'break-all', lineHeight: '1.4' }}>
                       {photo.feedback || '등록된 피드백이 없습니다.'}
                     </div>
                   </div>
@@ -279,12 +216,12 @@ function App() {
           {/* 메모 & 식단 */}
           <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '12px', marginBottom: '10px', fontSize: '12px' }}>
             <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>✍️ 트레이너 메모</div>
-            <div style={{ color: '#555', whitespace: 'pre-wrap' }}>{trainerMemo}</div>
+            <div style={{ color: '#555', whiteSpace: 'pre-wrap' }}>{trainerMemo}</div>
           </div>
 
           <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '12px', fontSize: '12px' }}>
             <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>🥗 식단 피드백</div>
-            <div style={{ color: '#555', whitespace: 'pre-wrap' }}>{dietMemo}</div>
+            <div style={{ color: '#555', whiteSpace: 'pre-wrap' }}>{dietMemo}</div>
           </div>
         </div>
 
