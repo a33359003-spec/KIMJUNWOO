@@ -8,7 +8,7 @@ function App() {
   const [trainerName, setTrainerName] = useState('황승준');
   const [date, setDate] = useState('2024.05.23 (목)');
 
-  // 2. 신체 수치 & 운동 요약 (심박수 포함)
+  // 2. 신체 수치 & 운동 요약
   const [weight, setWeight] = useState('75.5');
   const [targetWeight, setTargetWeight] = useState('70.0');
   const [bodyFat, setBodyFat] = useState('22.0');
@@ -32,8 +32,8 @@ function App() {
   const [newExSets, setNewExSets] = useState('');
   const [newExReps, setNewExReps] = useState('');
 
-  // 5. 사진 첨부
-  const [images, setImages] = useState([]);
+  // 5. 사진 및 사진별 피드백
+  const [photoList, setPhotoList] = useState([]);
 
   // 운동 종목 추가/삭제
   const handleAddExercise = () => {
@@ -46,46 +46,61 @@ function App() {
     setExercises(exercises.filter((_, i) => i !== index));
   };
 
-  // 사진 업로드
+  // 사진 추가
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
     files.forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImages(prev => [...prev, reader.result]);
+        setPhotoList(prev => [...prev, { url: reader.result, feedback: '' }]);
       };
       reader.readAsDataURL(file);
     });
   };
 
-  // 💬 카카오톡 공유 (대화상대 선택)
+  // 사진별 피드백 수정
+  const handlePhotoFeedbackChange = (index, value) => {
+    const updated = [...photoList];
+    updated[index].feedback = value;
+    setPhotoList(updated);
+  };
+
+  // 사진 삭제
+  const handleRemovePhoto = (index) => {
+    setPhotoList(photoList.filter((_, i) => i !== index));
+  };
+
+  // 💬 카카오톡/앱 공유 (텍스트 공유 및 복사)
   const handleShareToKakao = async () => {
     const exText = exercises.map(ex => `• ${ex.name}: ${ex.weight}kg / ${ex.sets}세트 ${ex.reps}회`).join('\n');
-    const shareData = {
-      title: `${memberName} PT 리포트`,
-      text: `[PREMIUM PT 리포트]\n👤 회원명: ${memberName}\n📅 날짜: ${date}\n\n📊 [운동 요약]\n🔥 ${calories}kcal | 🕒 ${duration}분 | ❤️ 심박수: ${avgHeartRate}bpm | 강도: ${intensity}\n\n🏋️‍♂️ [수행 운동]\n${exText}\n\n✍️ [트레이너 메모]\n${trainerMemo}\n\n🥗 [식단 피드백]\n${dietMemo}\n\n오늘도 수고하셨습니다! 👍`
-    };
+    const photoFeedbackText = photoList.map((p, i) => `📸 사진 ${i + 1} 피드백: ${p.feedback || '내용 없음'}`).join('\n');
+    
+    const shareText = `[PREMIUM PT 리포트]\n👤 회원명: ${memberName}\n📅 날짜: ${date}\n\n📊 [운동 요약]\n🔥 ${calories}kcal | 🕒 ${duration}분 | ❤️ 심박수: ${avgHeartRate}bpm | 강도: ${intensity}\n\n🏋️‍♂️ [수행 운동]\n${exText}\n\n${photoFeedbackText ? photoFeedbackText + '\n\n' : ''}✍️ [트레이너 메모]\n${trainerMemo}\n\n🥗 [식단 피드백]\n${dietMemo}\n\n오늘도 수고하셨습니다! 👍`;
 
     if (navigator.share) {
       try {
-        await navigator.share(shareData);
+        await navigator.share({
+          title: `${memberName} PT 리포트`,
+          text: shareText
+        });
       } catch (err) {
         console.log('공유 취소:', err);
       }
     } else {
-      navigator.clipboard.writeText(shareData.text);
-      alert('일지 내용이 복사되었습니다! 카카오톡 채팅창에 붙여넣어 보내세요.');
+      navigator.clipboard.writeText(shareText);
+      alert('일지 텍스트가 복사되었습니다! 카카오톡 채팅창에 붙여넣어 전송하세요.');
     }
   };
 
-  // 📂 PNG 이미지 생성 및 다운로드
+  // 📂 PNG 이미지 생성 및 다운로드 (사진 및 피드백 높이 가변 계산)
   const handleGenerateAndDownloadPng = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
+    const baseHeight = 650 + (exercises.length * 40) + (photoList.length * 60);
     canvas.width = 540;
-    canvas.height = 900;
+    canvas.height = Math.max(800, baseHeight);
 
     ctx.fillStyle = '#f2efea';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -100,27 +115,48 @@ function App() {
 
     // 신체 수치 카드
     ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.roundRect(28, 90, 484, 60, 10); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(28, 90, 484, 50, 10); ctx.fill();
     ctx.fillStyle = '#111111'; ctx.font = 'bold 12px -apple-system, sans-serif';
-    ctx.fillText(`체중: ${weight}kg (목표: ${targetWeight}kg) | 체지방: ${bodyFat}% | 골격근: ${muscle}kg`, 42, 125);
+    ctx.fillText(`체중: ${weight}kg (목표: ${targetWeight}kg) | 체지방: ${bodyFat}% | 골격근: ${muscle}kg`, 42, 120);
 
     // 운동 요약 박스
     ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.roundRect(28, 160, 484, 60, 10); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(28, 150, 484, 50, 10); ctx.fill();
     ctx.fillStyle = '#111111'; ctx.font = 'bold 12px -apple-system, sans-serif';
-    ctx.fillText(`🔥 ${calories} kcal  |  🕒 ${duration} 분  |  ❤️ 심박수: ${avgHeartRate} bpm  |  📊 강도: ${intensity}`, 42, 195);
+    ctx.fillText(`🔥 ${calories} kcal  |  🕒 ${duration} 분  |  ❤️ 심박수: ${avgHeartRate} bpm  |  📊 강도: ${intensity}`, 42, 180);
 
     // 수행 운동
     ctx.fillStyle = '#111111'; ctx.font = 'bold 14px -apple-system, sans-serif';
-    ctx.fillText('오늘 수행한 운동', 28, 245);
+    ctx.fillText('오늘 수행한 운동', 28, 225);
 
-    let startY = 260;
+    let startY = 240;
     exercises.forEach((ex) => {
-      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(28, startY, 484, 36, 8); ctx.fill();
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(28, startY, 484, 34, 8); ctx.fill();
       ctx.fillStyle = '#111111'; ctx.font = '12px -apple-system, sans-serif';
-      ctx.fillText(`• ${ex.name} - ${ex.weight}kg / ${ex.sets}세트 ${ex.reps}회`, 42, startY + 22);
-      startY += 44;
+      ctx.fillText(`• ${ex.name} - ${ex.weight}kg / ${ex.sets}세트 ${ex.reps}회`, 42, startY + 21);
+      startY += 40;
     });
+
+    // 사진 피드백 요약
+    if (photoList.length > 0) {
+      startY += 10;
+      ctx.fillStyle = '#111111'; ctx.font = 'bold 14px -apple-system, sans-serif';
+      ctx.fillText('사진별 피드백', 28, startY);
+      startY += 15;
+
+      photoList.forEach((p, idx) => {
+        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(28, startY, 484, 45, 8); ctx.fill();
+        ctx.fillStyle = '#111111'; ctx.font = 'bold 12px -apple-system, sans-serif';
+        ctx.fillText(`사진 ${idx + 1}: ${p.feedback || '피드백 없음'}`, 42, startY + 26);
+        startY += 52;
+      });
+    }
+
+    // 트레이너 메모 & 식단
+    startY += 10;
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(28, startY, 484, 60, 8); ctx.fill();
+    ctx.fillStyle = '#111111'; ctx.font = 'bold 12px -apple-system, sans-serif';
+    ctx.fillText(`✍️ 트레이너 메모: ${trainerMemo}`, 42, startY + 35);
 
     // 다운로드
     const imageURI = canvas.toDataURL('image/png');
@@ -146,7 +182,7 @@ function App() {
           <h1 style={{ fontSize: '22px', fontWeight: '800', margin: '4px 0', color: '#ffffff' }}>VIP 퍼스널 트레이닝 리포트</h1>
         </div>
 
-        {/* 상단 메인 리포트 카드 (크림색 테마) */}
+        {/* 메인 리포트 카드 (크림색 테마) */}
         <div style={{ backgroundColor: '#f2efea', borderRadius: '14px', padding: '20px', color: '#111111' }}>
           <h2 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '12px' }}>🏋️‍♂️ {memberName} PT 리포트</h2>
           
@@ -158,7 +194,7 @@ function App() {
             </div>
           </div>
 
-          {/* 운동 요약 (심박수 포함) */}
+          {/* 운동 요약 */}
           <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '12px', marginBottom: '10px' }}>
             <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>🔥 오늘의 운동 요약</div>
             <div style={{ fontSize: '12px', color: '#444' }}>
@@ -176,15 +212,21 @@ function App() {
             ))}
           </div>
 
-          {/* 첨부 사진 */}
-          {images.length > 0 && (
+          {/* 첨부 사진 및 사진별 피드백 */}
+          {photoList.length > 0 && (
             <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '12px', marginBottom: '10px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>📸 첨부된 운동 사진</div>
-              <div style={{ display: 'flex', gap: '8px', overflowX: 'auto' }}>
-                {images.map((img, idx) => (
-                  <img key={idx} src={img} alt="운동사진" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '6px' }} />
-                ))}
-              </div>
+              <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>📸 첨부 운동 사진 및 피드백</div>
+              {photoList.map((photo, idx) => (
+                <div key={idx} style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'center', backgroundColor: '#f9f9f9', padding: '8px', borderRadius: '8px' }}>
+                  <img src={photo.url} alt={`운동사진 ${idx + 1}`} style={{ width: '65px', height: '65px', objectFit: 'cover', borderRadius: '6px' }} />
+                  <div style={{ flex: 1, fontSize: '12px', color: '#333' }}>
+                    <strong>사진 {idx + 1} 피드백:</strong>
+                    <div style={{ color: '#555', marginTop: '2px', wordBreak: 'break-all' }}>
+                      {photo.feedback || '피드백 미입력'}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
@@ -200,27 +242,16 @@ function App() {
           </div>
         </div>
 
-        {/* 📱 수업 중 하단 실시간 입력창 (모든 기능 탑재) */}
+        {/* 하단 입력 폼 */}
         <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '14px', marginTop: '20px', color: '#111' }}>
           <h4 style={{ fontSize: '13px', fontWeight: '800', margin: '0 0 10px 0', color: '#2563eb' }}>📱 수업 중 실시간 입력 / 변경</h4>
           
-          {/* 기본 정보 */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', marginBottom: '10px' }}>
-            <div>
-              <label style={{ fontSize: '10px', color: '#666' }}>회원명</label>
-              <input type="text" value={memberName} onChange={(e) => setMemberName(e.target.value)} style={inputStyle} />
-            </div>
-            <div>
-              <label style={{ fontSize: '10px', color: '#666' }}>트레이너</label>
-              <input type="text" value={trainerName} onChange={(e) => setTrainerName(e.target.value)} style={inputStyle} />
-            </div>
-            <div>
-              <label style={{ fontSize: '10px', color: '#666' }}>날짜</label>
-              <input type="text" value={date} onChange={(e) => setDate(e.target.value)} style={inputStyle} />
-            </div>
+            <div><label style={{ fontSize: '10px', color: '#666' }}>회원명</label><input type="text" value={memberName} onChange={(e) => setMemberName(e.target.value)} style={inputStyle} /></div>
+            <div><label style={{ fontSize: '10px', color: '#666' }}>트레이너</label><input type="text" value={trainerName} onChange={(e) => setTrainerName(e.target.value)} style={inputStyle} /></div>
+            <div><label style={{ fontSize: '10px', color: '#666' }}>날짜</label><input type="text" value={date} onChange={(e) => setDate(e.target.value)} style={inputStyle} /></div>
           </div>
 
-          {/* 신체 & 운동 수치 */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '6px', marginBottom: '10px' }}>
             <div><label style={{ fontSize: '10px', color: '#666' }}>체중</label><input type="text" value={weight} onChange={(e) => setWeight(e.target.value)} style={inputStyle} /></div>
             <div><label style={{ fontSize: '10px', color: '#666' }}>목표</label><input type="text" value={targetWeight} onChange={(e) => setTargetWeight(e.target.value)} style={inputStyle} /></div>
@@ -256,10 +287,27 @@ function App() {
             </div>
           </div>
 
-          {/* 사진 파일 선택 */}
+          {/* 사진 첨부 & 사진 밑 피드백 작성 칸 */}
           <div style={{ borderTop: '1px solid #eee', paddingTop: '10px', marginBottom: '10px' }}>
-            <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#111' }}>📷 운동 사진 첨부</label>
-            <input type="file" accept="image/*" multiple onChange={handleImageUpload} style={{ ...inputStyle, marginTop: '4px' }} />
+            <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#111' }}>📷 운동 사진 첨부 및 개별 피드백 입력</label>
+            <input type="file" accept="image/*" multiple onChange={handleImageUpload} style={{ ...inputStyle, marginTop: '4px', marginBottom: '8px' }} />
+
+            {photoList.map((photo, i) => (
+              <div key={i} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px', marginBottom: '8px', backgroundColor: '#fafafa' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <img src={photo.url} alt={`사진 ${i + 1}`} style={{ width: '45px', height: '45px', objectFit: 'cover', borderRadius: '4px' }} />
+                  <span style={{ fontSize: '11px', fontWeight: 'bold' }}>사진 {i + 1} 피드백</span>
+                  <button onClick={() => handleRemovePhoto(i)} style={{ marginLeft: 'auto', color: 'red', border: 'none', background: 'none', cursor: 'pointer', fontSize: '11px' }}>삭제</button>
+                </div>
+                <input 
+                  type="text" 
+                  placeholder="이 사진에 대한 피드백 입력 (예: 골반 기울임 주의)" 
+                  value={photo.feedback} 
+                  onChange={(e) => handlePhotoFeedbackChange(i, e.target.value)} 
+                  style={inputStyle} 
+                />
+              </div>
+            ))}
           </div>
 
           {/* 메모 및 식단 작성 */}
@@ -270,7 +318,7 @@ function App() {
           </div>
         </div>
 
-        {/* 카카오톡 공유 & 이미지 저장 버튼 */}
+        {/* 전송 & 저장 버튼 */}
         <button 
           type="button" 
           onClick={handleShareToKakao}
