@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 
 function App() {
+  // 수업 입력 데이터 상태
+  const [member, setMember] = useState('');
+  const [exercise, setExercise] = useState('');
+  const [memo, setMemo] = useState('');
   const [selectedMedia, setSelectedMedia] = useState(null);
   const [mediaType, setMediaType] = useState('');
 
+  // 사진 및 동영상 파일 선택 처리
   const handleMediaChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -18,72 +23,132 @@ function App() {
     }
   };
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    alert('수업 내용이 성공적으로 기록되었습니다!');
+  };
+
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif', textAlign: 'center' }}>
-      <h2>PT 리포트</h2>
-      
-      <div style={{ margin: '20px 0' }}>
-        <h3 style={{ marginBottom: '10px' }}>수업 결과 업로드</h3>
-        <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
-          버튼을 누르고 <strong>'사진 보관함'</strong>을 선택해 주세요.
-        </p>
-        
-        <label 
-          htmlFor="media-upload" 
+    <div style={{ padding: '20px', maxWidth: '500px', margin: '0 auto', fontFamily: 'sans-serif' }}>
+      <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>🏋️‍♂️ PT 리포트 관리</h2>
+
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        {/* 회원 선택 */}
+        <div>
+          <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>회원명</label>
+          <input 
+            type="text" 
+            placeholder="회원 이름을 입력하세요" 
+            value={member}
+            onChange={(e) => setMember(e.target.value)}
+            style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
+          />
+        </div>
+
+        {/* 운동 내용 */}
+        <div>
+          <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>수업/운동 내용</label>
+          <input 
+            type="text" 
+            placeholder="예: 스쿼트 5세트, 데드리프트 3세트" 
+            value={exercise}
+            onChange={(e) => setExercise(e.target.value)}
+            style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
+          />
+        </div>
+
+        {/* 특이사항 메모 */}
+        <div>
+          <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>수업 메모 및 특이사항</label>
+          <textarea 
+            rows="3" 
+            placeholder="자세 피드백 및 특이사항을 기록하세요" 
+            value={memo}
+            onChange={(e) => setMemo(e.target.value)}
+            style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
+          />
+        </div>
+
+        {/* 수업 사진 및 동영상 첨부 (앨범 호환) */}
+        <div>
+          <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>수업 결과 (사진/동영상 첨부)</label>
+          <label 
+            htmlFor="media-upload" 
+            style={{
+              padding: '10px 15px',
+              backgroundColor: '#0070f3',
+              color: 'white',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              display: 'inline-block',
+              textAlign: 'center',
+              width: '100%',
+              boxSizing: 'border-box'
+            }}
+          >
+            앨범에서 사진/동영상 선택
+          </label>
+          <input 
+            id="media-upload"
+            type="file" 
+            onChange={handleMediaChange}
+            style={{ display: 'none' }}
+          />
+        </div>
+
+        {/* 미디어 미리보기 */}
+        {selectedMedia && (
+          <div style={{ marginTop: '10px', textAlign: 'center' }}>
+            {mediaType === 'image' ? (
+              <img 
+                src={selectedMedia} 
+                alt="수업 결과 사진" 
+                style={{ width: '100%', maxHeight: '250px', objectFit: 'cover', borderRadius: '6px' }} 
+              />
+            ) : (
+              <video 
+                src={selectedMedia} 
+                controls 
+                style={{ width: '100%', maxHeight: '250px', borderRadius: '6px' }} 
+              />
+            )}
+            <button 
+              type="button"
+              onClick={() => { setSelectedMedia(null); setMediaType(''); }}
+              style={{
+                marginTop: '8px',
+                padding: '5px 10px',
+                backgroundColor: '#ff4d4f',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              첨부 삭제
+            </button>
+          </div>
+        )}
+
+        {/* 저장 버튼 */}
+        <button 
+          type="submit" 
           style={{
-            padding: '12px 20px',
-            backgroundColor: '#0070f3',
+            padding: '12px',
+            backgroundColor: '#28a745',
             color: 'white',
-            borderRadius: '8px',
-            cursor: 'pointer',
+            border: 'none',
+            borderRadius: '6px',
             fontWeight: 'bold',
-            display: 'inline-block'
+            fontSize: '16px',
+            cursor: 'pointer',
+            marginTop: '10px'
           }}
         >
-          사진/동영상 선택 (앨범)
-        </label>
-        {/* accept와 capture를 모두 제거하여 iOS 기본 미디어 선택 메뉴(보관함 포함)를 호출 */}
-        <input 
-          id="media-upload"
-          type="file" 
-          onChange={handleMediaChange}
-          style={{ display: 'none' }}
-        />
-      </div>
-
-      {selectedMedia && (
-        <div style={{ marginTop: '30px', borderTop: '1px solid #eee', paddingTop: '20px' }}>
-          <h3 style={{ marginBottom: '15px' }}>선택된 미디어 미리보기</h3>
-          {mediaType === 'image' ? (
-            <img 
-              src={selectedMedia} 
-              alt="수업 결과 사진" 
-              style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }} 
-            />
-          ) : (
-            <video 
-              src={selectedMedia} 
-              controls 
-              style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }} 
-            />
-          )}
-           <div style={{marginTop: '15px'}}>
-             <button 
-                onClick={() => {setSelectedMedia(null); setMediaType('');}}
-                style={{
-                    padding: '8px 15px',
-                    backgroundColor: '#ff4d4f',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer'
-                }}
-             >
-                삭제 후 다시 선택
-             </button>
-           </div>
-        </div>
-      )}
+          수업 리포트 저장하기
+        </button>
+      </form>
     </div>
   );
 }
