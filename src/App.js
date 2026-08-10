@@ -3,15 +3,15 @@ import React, { useState, useRef } from 'react';
 function App() {
   const canvasRef = useRef(null);
 
-  // 1. 기본 회원 및 트레이너 정보
+  // 1. 기본 회원 정보
   const [memberName, setMemberName] = useState('김준우 회원님');
   const [trainerName, setTrainerName] = useState('황승준');
   const [date, setDate] = useState('2024.05.23 (목)');
 
-  // 2. 운동 요약 데이터 (심박수 추가)
+  // 2. 운동 요약 (심박수 추가)
   const [calories, setCalories] = useState('420');
   const [duration, setDuration] = useState('60');
-  const [avgHeartRate, setAvgHeartRate] = useState('126'); // 🔥 심박수 (bpm)
+  const [avgHeartRate, setAvgHeartRate] = useState('126');
   const [intensity, setIntensity] = useState('중상');
 
   // 3. 운동 세부 기록
@@ -33,7 +33,7 @@ function App() {
     }
   ]);
 
-  // 🔥 기능 1: 카카오톡/스마트폰 전송 대상(회원 선택) 팝업 열기
+  // 카카오톡 / 스마트폰 대상 선택 공유창 팝업
   const handleShareToKakao = async () => {
     const shareData = {
       title: `${memberName} PT 운동 일지`,
@@ -42,19 +42,17 @@ function App() {
 
     if (navigator.share) {
       try {
-        // 스마트폰 공유 창(카카오톡 친구, 채팅방 선택창)이 뜸
         await navigator.share(shareData);
       } catch (err) {
-        console.log('공유 취소 또는 에러:', err);
+        console.log('공유 취소:', err);
       }
     } else {
-      // 시스템 공유를 지원하지 않는 브라우저일 경우 클립보드 복사
       navigator.clipboard.writeText(shareData.text);
       alert('일지 내용이 복사되었습니다! 카카오톡 채팅창에 붙여넣어 보내세요.');
     }
   };
 
-  // 🔥 기능 2: 순수 Canvas 기반 PNG 이미지 자동 생성 및 저장
+  // PNG 이미지 파일 자동 저장
   const handleGenerateAndDownloadPng = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -63,11 +61,9 @@ function App() {
     canvas.width = 540;
     canvas.height = 780;
 
-    // 크림색 배경
     ctx.fillStyle = '#f2efea';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 헤더 타이틀
     ctx.fillStyle = '#111111';
     ctx.font = 'bold 22px -apple-system, sans-serif';
     ctx.fillText(`🏋️‍♂️ ${memberName} PT 리포트`, 28, 48);
@@ -83,7 +79,6 @@ function App() {
     ctx.lineTo(512, 88);
     ctx.stroke();
 
-    // 요약 카드
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
     ctx.roundRect(28, 105, 484, 95, 10);
@@ -98,7 +93,6 @@ function App() {
     ctx.fillText(`🔥 칼로리: ${calories} kcal`, 44, 165);
     ctx.fillText(`🕒 시간: ${duration} 분`, 170, 165);
 
-    // 심박수 텍스트
     ctx.fillStyle = '#d97706';
     ctx.font = 'bold 13px -apple-system, sans-serif';
     ctx.fillText(`❤️ 심박수: ${avgHeartRate} bpm`, 280, 165);
@@ -107,7 +101,6 @@ function App() {
     ctx.font = '13px -apple-system, sans-serif';
     ctx.fillText(`📊 강도: ${intensity}`, 415, 165);
 
-    // 세부 운동
     ctx.fillStyle = '#111111';
     ctx.font = 'bold 15px -apple-system, sans-serif';
     ctx.fillText('세부 운동 기록', 28, 230);
@@ -138,7 +131,6 @@ function App() {
       startY += cardHeight + 12;
     });
 
-    // 다운로드 실행
     const imageURI = canvas.toDataURL('image/png');
     const link = document.createElement('a');
     link.href = imageURI;
@@ -163,17 +155,14 @@ function App() {
         
         <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-        {/* 상단 헤더 */}
         <div style={{ borderBottom: '1px solid #333333', paddingBottom: '12px', marginBottom: '20px' }}>
           <span style={{ fontSize: '11px', color: '#d4af37', fontWeight: '800' }}>PREMIUM PT</span>
           <h1 style={{ fontSize: '22px', fontWeight: '800', margin: '4px 0', color: '#ffffff' }}>회원 운동 일지</h1>
         </div>
 
-        {/* 메인 크림색 카드 리포트 */}
         <div style={{ backgroundColor: '#f2efea', borderRadius: '14px', padding: '20px', color: '#111111' }}>
           <h2 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '12px' }}>🏋️‍♂️ {memberName} PT 리포트</h2>
           
-          {/* 심박수 포함 요약 박스 */}
           <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '12px', marginBottom: '12px' }}>
             <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>오늘의 운동 요약</div>
             <div style={{ fontSize: '12px', color: '#444' }}>
@@ -194,7 +183,6 @@ function App() {
           ))}
         </div>
 
-        {/* 수업 중 실시간 입력창 (심박수 입력 가능) */}
         <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '14px', marginTop: '20px', color: '#111' }}>
           <h4 style={{ fontSize: '13px', fontWeight: '800', margin: '0 0 10px 0', color: '#2563eb' }}>📱 수업 중 수치 변경</h4>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px' }}>
@@ -217,7 +205,6 @@ function App() {
           </div>
         </div>
 
-        {/* 💬 버튼 1: 카카오톡 보내기 (대상 선택창 팝업) */}
         <button 
           type="button" 
           onClick={handleShareToKakao}
@@ -226,7 +213,6 @@ function App() {
           💬 카카오톡 대상 선택해서 전송하기
         </button>
 
-        {/* 📂 버튼 2: PNG 이미지 생성 및 바로 다운로드 */}
         <button 
           type="button" 
           onClick={handleGenerateAndDownloadPng}
