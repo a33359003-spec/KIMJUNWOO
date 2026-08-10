@@ -12,6 +12,8 @@ function App() {
   ]);
 
   const [memo, setMemo] = useState('');
+  const [dietFeedback, setDietFeedback] = useState(''); 
+  const [monthlyChecklist, setMonthlyChecklist] = useState('컨디션 양호 / 수면 시간 유지 / 수분 섭취 2L 이상 달성 중'); 
   const [mediaList, setMediaList] = useState([]);
 
   const handleAddExercise = () => {
@@ -51,7 +53,7 @@ function App() {
     setMediaList((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // 🖼️ 사진 비율 및 높이 자동 계산 PNG 이미지 생성
+  // 🖼️ 사진 비율 및 동적 높이 계산 PNG 이미지 생성
   const handleGeneratePngImage = async () => {
     if (!member) {
       alert('회원 이름을 입력해 주세요.');
@@ -60,7 +62,7 @@ function App() {
 
     // 1. 첨부된 이미지 사전 로드 및 원본 비율(높이) 계산
     const loadedImages = [];
-    const imageWidth = 540; // 캔버스 내부 이미지 폭
+    const imageWidth = 540;
 
     for (let i = 0; i < mediaList.length; i++) {
       const media = mediaList[i];
@@ -73,7 +75,6 @@ function App() {
             img.onerror = resolve;
           });
 
-          // 원본 비율에 맞춰 캔버스상 이미지 높이 산출 (찌그러짐 방지)
           const aspectRatio = img.naturalHeight / img.naturalWidth || 0.75;
           const calculatedHeight = Math.round(imageWidth * aspectRatio);
 
@@ -89,7 +90,7 @@ function App() {
       }
     }
 
-    // 2. 전체 캔버스 높이 동적 계산 (내용이 길어져도 수직 확장)
+    // 2. 전체 캔버스 높이 동적 계산 (마무리 멘트 영역 포함)
     const width = 600;
     const validExercises = exercises.filter((e) => e.name);
     
@@ -98,11 +99,13 @@ function App() {
       totalMediaHeight += item.height + (item.caption ? 45 : 25);
     });
 
-    const height = 380 
+    const height = 540 
       + (validExercises.length * 40) 
       + (memo ? 90 : 0) 
+      + (dietFeedback ? 90 : 0)
+      + (monthlyChecklist ? 90 : 0)
       + totalMediaHeight 
-      + 40; // 하단 여백
+      + 40;
 
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -160,8 +163,25 @@ function App() {
     ctx.fillStyle = '#38bdf8';
     ctx.fillRect(45, 205, ((width - 90) * progressPercent) / 100, 10);
 
-    // 운동 세부 기록
     let currentY = 260;
+
+    // 📋 월간 점검표
+    if (monthlyChecklist) {
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 15px sans-serif';
+      ctx.fillText('📋 월간 종합 점검표', 30, currentY);
+
+      currentY += 15;
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(30, currentY, width - 60, 50);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '13px sans-serif';
+      ctx.fillText(monthlyChecklist, 40, currentY + 30);
+      currentY += 70;
+    }
+
+    // 운동 세부 기록
     ctx.fillStyle = '#38bdf8';
     ctx.font = 'bold 15px sans-serif';
     ctx.fillText('🏋️‍♂️ 오늘의 세부 운동 기록', 30, currentY);
@@ -185,12 +205,29 @@ function App() {
       });
     }
 
+    // 🥗 식단 피드백
+    if (dietFeedback) {
+      currentY += 45;
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 15px sans-serif';
+      ctx.fillText('🥗 식단 관리 및 피드백', 30, currentY);
+
+      currentY += 15;
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(30, currentY, width - 60, 50);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '13px sans-serif';
+      ctx.fillText(dietFeedback, 40, currentY + 30);
+      currentY += 70;
+    }
+
     // 수업 총평
     if (memo) {
       currentY += 45;
       ctx.fillStyle = '#38bdf8';
       ctx.font = 'bold 15px sans-serif';
-      ctx.fillText('📝 수업 총평 및 피드백', 30, currentY);
+      ctx.fillText('📝 수업 총평 및 코칭 피드백', 30, currentY);
 
       currentY += 15;
       ctx.fillStyle = '#0f172a';
@@ -199,23 +236,21 @@ function App() {
       ctx.fillStyle = '#ffffff';
       ctx.font = '13px sans-serif';
       ctx.fillText(memo, 40, currentY + 30);
-      currentY += 50;
+      currentY += 70;
     }
 
-    // 이미지 그리기 (원본 비율 유지)
+    // 이미지 그리기 (비율 유지)
     if (loadedImages.length > 0) {
-      currentY += 45;
+      currentY += 15;
       ctx.fillStyle = '#38bdf8';
       ctx.font = 'bold 15px sans-serif';
       ctx.fillText('📷 운동 사진 및 영상 갤러리', 30, currentY);
 
       loadedImages.forEach((item) => {
         currentY += 15;
-        // 사진 렌더링
         ctx.drawImage(item.imgElement, 30, currentY, item.width, item.height);
         currentY += item.height;
 
-        // 캡션 렌더링
         if (item.caption) {
           currentY += 20;
           ctx.fillStyle = '#cbd5e1';
@@ -227,6 +262,13 @@ function App() {
         }
       });
     }
+
+    // ✨ 마무리 멘트 추가
+    currentY += 35;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#f59e0b';
+    ctx.font = 'bold 15px sans-serif';
+    ctx.fillText('오늘도 정말 고생하셨어요 ^^', width / 2, currentY);
 
     // PNG 다운로드 및 공유
     canvas.toBlob(async (blob) => {
@@ -319,6 +361,18 @@ function App() {
           </div>
         </div>
 
+        {/* 📋 월간 종합 점검표 입력 */}
+        <div style={{ marginBottom: '24px' }}>
+          <label style={{ fontSize: '14px', fontWeight: '700', color: '#f8fafc', display: 'block', marginBottom: '8px' }}>📋 월간 종합 점검표</label>
+          <input 
+            type="text" 
+            placeholder="예: 컨디션 양호 / 수면 7시간 / 수분 섭취 우수" 
+            value={monthlyChecklist}
+            onChange={(e) => setMonthlyChecklist(e.target.value)}
+            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #475569', backgroundColor: '#0f172a', color: '#fff', boxSizing: 'border-box' }}
+          />
+        </div>
+
         {/* 운동 상세 기록 */}
         <div style={{ marginBottom: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
@@ -375,12 +429,24 @@ function App() {
           ))}
         </div>
 
+        {/* 🥗 식단 관리 및 피드백 입력 */}
+        <div style={{ marginBottom: '24px' }}>
+          <label style={{ fontSize: '14px', fontWeight: '700', color: '#f8fafc', display: 'block', marginBottom: '8px' }}>🥗 식단 관리 및 피드백</label>
+          <textarea 
+            rows="2" 
+            placeholder="단백질 섭취량 유지, 야식 제한 피드백 등" 
+            value={dietFeedback}
+            onChange={(e) => setDietFeedback(e.target.value)}
+            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #475569', backgroundColor: '#0f172a', color: '#fff', boxSizing: 'border-box' }}
+          />
+        </div>
+
         {/* 수업 총평 */}
         <div style={{ marginBottom: '24px' }}>
           <label style={{ fontSize: '14px', fontWeight: '700', color: '#f8fafc', display: 'block', marginBottom: '8px' }}>📝 수업 총평 및 코칭 피드백</label>
           <textarea 
-            rows="3" 
-            placeholder="자세 보정 포인트나 식단 지시 사항을 기록하세요" 
+            rows="2" 
+            placeholder="자세 보정 포인트나 트레이너 코멘트" 
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
             style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #475569', backgroundColor: '#0f172a', color: '#fff', boxSizing: 'border-box' }}
