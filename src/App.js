@@ -70,99 +70,141 @@ function App() {
     setPhotoList(photoList.filter((_, i) => i !== index));
   };
 
-  // 💬 카카오톡/앱 공유 (텍스트 공유 및 복사)
-  const handleShareToKakao = async () => {
-    const exText = exercises.map(ex => `• ${ex.name}: ${ex.weight}kg / ${ex.sets}세트 ${ex.reps}회`).join('\n');
-    const photoFeedbackText = photoList.map((p, i) => `📸 사진 ${i + 1} 피드백: ${p.feedback || '내용 없음'}`).join('\n');
-    
-    const shareText = `[PREMIUM PT 리포트]\n👤 회원명: ${memberName}\n📅 날짜: ${date}\n\n📊 [운동 요약]\n🔥 ${calories}kcal | 🕒 ${duration}분 | ❤️ 심박수: ${avgHeartRate}bpm | 강도: ${intensity}\n\n🏋️‍♂️ [수행 운동]\n${exText}\n\n${photoFeedbackText ? photoFeedbackText + '\n\n' : ''}✍️ [트레이너 메모]\n${trainerMemo}\n\n🥗 [식단 피드백]\n${dietMemo}\n\n오늘도 수고하셨습니다! 👍`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `${memberName} PT 리포트`,
-          text: shareText
-        });
-      } catch (err) {
-        console.log('공유 취소:', err);
-      }
-    } else {
-      navigator.clipboard.writeText(shareText);
-      alert('일지 텍스트가 복사되었습니다! 카카오톡 채팅창에 붙여넣어 전송하세요.');
-    }
-  };
-
-  // 📂 PNG 이미지 생성 및 다운로드 (사진 및 피드백 높이 가변 계산)
-  const handleGenerateAndDownloadPng = () => {
+  // 🎨 Canvas로 PNG 이미지 렌더링 함수
+  const drawCanvas = async () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return null;
 
     const ctx = canvas.getContext('2d');
-    const baseHeight = 650 + (exercises.length * 40) + (photoList.length * 60);
+    const dynamicHeight = 650 + (exercises.length * 35) + (photoList.length * 160);
     canvas.width = 540;
-    canvas.height = Math.max(800, baseHeight);
+    canvas.height = Math.max(800, dynamicHeight);
 
+    // 배경
     ctx.fillStyle = '#f2efea';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // 헤더
     ctx.fillStyle = '#111111';
-    ctx.font = 'bold 22px -apple-system, sans-serif';
-    ctx.fillText(`🏋️‍♂️ ${memberName} PT 리포트`, 28, 48);
+    ctx.font = 'bold 20px -apple-system, sans-serif';
+    ctx.fillText(`🏋️‍♂️ ${memberName} PT 리포트`, 24, 45);
 
     ctx.fillStyle = '#666666';
-    ctx.font = '13px -apple-system, sans-serif';
-    ctx.fillText(`담당: ${trainerName} 트레이너 | 일자: ${date}`, 28, 72);
+    ctx.font = '12px -apple-system, sans-serif';
+    ctx.fillText(`담당: ${trainerName} 트레이너 | 일자: ${date}`, 24, 68);
 
-    // 신체 수치 카드
+    // 신체 수치 박스
     ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.roundRect(28, 90, 484, 50, 10); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(24, 85, 492, 45, 8); ctx.fill();
     ctx.fillStyle = '#111111'; ctx.font = 'bold 12px -apple-system, sans-serif';
-    ctx.fillText(`체중: ${weight}kg (목표: ${targetWeight}kg) | 체지방: ${bodyFat}% | 골격근: ${muscle}kg`, 42, 120);
+    ctx.fillText(`체중: ${weight}kg (목표: ${targetWeight}kg) | 체지방: ${bodyFat}% | 골격근: ${muscle}kg`, 36, 112);
 
     // 운동 요약 박스
     ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.roundRect(28, 150, 484, 50, 10); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(24, 140, 492, 45, 8); ctx.fill();
     ctx.fillStyle = '#111111'; ctx.font = 'bold 12px -apple-system, sans-serif';
-    ctx.fillText(`🔥 ${calories} kcal  |  🕒 ${duration} 분  |  ❤️ 심박수: ${avgHeartRate} bpm  |  📊 강도: ${intensity}`, 42, 180);
+    ctx.fillText(`🔥 ${calories} kcal  |  🕒 ${duration} 분  |  ❤️ 심박수: ${avgHeartRate} bpm  |  강도: ${intensity}`, 36, 167);
 
     // 수행 운동
-    ctx.fillStyle = '#111111'; ctx.font = 'bold 14px -apple-system, sans-serif';
-    ctx.fillText('오늘 수행한 운동', 28, 225);
+    ctx.fillStyle = '#111111'; ctx.font = 'bold 13px -apple-system, sans-serif';
+    ctx.fillText('오늘 수행한 운동', 24, 210);
 
-    let startY = 240;
+    let startY = 222;
     exercises.forEach((ex) => {
-      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(28, startY, 484, 34, 8); ctx.fill();
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(24, startY, 492, 30, 6); ctx.fill();
       ctx.fillStyle = '#111111'; ctx.font = '12px -apple-system, sans-serif';
-      ctx.fillText(`• ${ex.name} - ${ex.weight}kg / ${ex.sets}세트 ${ex.reps}회`, 42, startY + 21);
-      startY += 40;
+      ctx.fillText(`• ${ex.name} - ${ex.weight}kg / ${ex.sets}세트 ${ex.reps}회`, 36, startY + 19);
+      startY += 35;
     });
 
-    // 사진 피드백 요약
+    // 사진 첨부 및 사진별 피드백 그리기
     if (photoList.length > 0) {
       startY += 10;
-      ctx.fillStyle = '#111111'; ctx.font = 'bold 14px -apple-system, sans-serif';
-      ctx.fillText('사진별 피드백', 28, startY);
-      startY += 15;
+      ctx.fillStyle = '#111111'; ctx.font = 'bold 13px -apple-system, sans-serif';
+      ctx.fillText('운동 사진 및 개별 피드백', 24, startY);
+      startY += 12;
 
-      photoList.forEach((p, idx) => {
-        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(28, startY, 484, 45, 8); ctx.fill();
-        ctx.fillStyle = '#111111'; ctx.font = 'bold 12px -apple-system, sans-serif';
-        ctx.fillText(`사진 ${idx + 1}: ${p.feedback || '피드백 없음'}`, 42, startY + 26);
-        startY += 52;
-      });
+      for (let i = 0; i < photoList.length; i++) {
+        const item = photoList[i];
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.roundRect(24, startY, 492, 140, 8); ctx.fill();
+
+        // 이미지 로딩 후 그려넣기
+        await new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(36, startY + 15, 110, 110, 6);
+            ctx.clip();
+            ctx.drawImage(img, 36, startY + 15, 110, 110);
+            ctx.restore();
+            resolve();
+          };
+          img.onerror = resolve;
+          img.src = item.url;
+        });
+
+        // 사진 텍스트 및 피드백 내용
+        ctx.fillStyle = '#2563eb'; ctx.font = 'bold 12px -apple-system, sans-serif';
+        ctx.fillText(`사진 ${i + 1} 피드백`, 160, startY + 35);
+
+        ctx.fillStyle = '#333333'; ctx.font = '12px -apple-system, sans-serif';
+        const feedbackText = item.feedback || '피드백 미입력';
+        ctx.fillText(feedbackText, 160, startY + 60);
+
+        startY += 150;
+      }
     }
 
-    // 트레이너 메모 & 식단
+    // 메모 & 식단
     startY += 10;
-    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(28, startY, 484, 60, 8); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(24, startY, 492, 50, 8); ctx.fill();
     ctx.fillStyle = '#111111'; ctx.font = 'bold 12px -apple-system, sans-serif';
-    ctx.fillText(`✍️ 트레이너 메모: ${trainerMemo}`, 42, startY + 35);
+    ctx.fillText(`✍️ 메모: ${trainerMemo}`, 36, startY + 30);
 
-    // 다운로드
+    return canvas;
+  };
+
+  // 💬 PNG 이미지로 변환하여 카카오톡 / 모바일 공유
+  const handleShareToKakao = async () => {
+    const canvas = await drawCanvas();
+    if (!canvas) return;
+
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      const file = new File([blob], `${memberName}_PT리포트.png`, { type: 'image/png' });
+
+      // 모바일 브라우저 이미지 직접 공유 지원 확인
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: `${memberName} PT 리포트`,
+            files: [file]
+          });
+        } catch (e) {
+          console.log('공유 취소:', e);
+        }
+      } else {
+        // 모바일 웹/PC에서 파일 다운로드로 전환
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `${memberName}_PT리포트.png`;
+        link.click();
+        alert('PNG 이미지 파일이 생성되었습니다! 다운로드된 이미지를 카카오톡으로 전송해 주세요.');
+      }
+    }, 'image/png');
+  };
+
+  // 📂 PNG 이미지 파일 다운로드
+  const handleGenerateAndDownloadPng = async () => {
+    const canvas = await drawCanvas();
+    if (!canvas) return;
+
     const imageURI = canvas.toDataURL('image/png');
     const link = document.createElement('a');
     link.href = imageURI;
-    link.download = `${memberName}_PT일지.png`;
+    link.download = `${memberName}_PT리포트.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -174,6 +216,7 @@ function App() {
     <div style={{ backgroundColor: '#111111', minHeight: '100vh', padding: '20px 10px', color: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
       <div style={{ maxWidth: '540px', margin: '0 auto', backgroundColor: '#1c1c1c', borderRadius: '16px', padding: '20px' }}>
         
+        {/* 숨겨진 캔버스 (PNG 이미지 변환용) */}
         <canvas ref={canvasRef} style={{ display: 'none' }} />
 
         {/* 헤더 */}
@@ -184,7 +227,10 @@ function App() {
 
         {/* 메인 리포트 카드 (크림색 테마) */}
         <div style={{ backgroundColor: '#f2efea', borderRadius: '14px', padding: '20px', color: '#111111' }}>
-          <h2 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '12px' }}>🏋️‍♂️ {memberName} PT 리포트</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: '800', margin: 0 }}>🏋️‍♂️ {memberName} PT 리포트</h2>
+            <span style={{ fontSize: '11px', color: '#666' }}>{date} | {trainerName} 트레이너</span>
+          </div>
           
           {/* 신체 기록 */}
           <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '12px', marginBottom: '10px' }}>
@@ -212,17 +258,17 @@ function App() {
             ))}
           </div>
 
-          {/* 첨부 사진 및 사진별 피드백 */}
+          {/* 첨부 사진 및 개별 사진 피드백 */}
           {photoList.length > 0 && (
             <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '12px', marginBottom: '10px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>📸 첨부 운동 사진 및 피드백</div>
+              <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>📸 첨부 운동 사진 및 개별 피드백</div>
               {photoList.map((photo, idx) => (
                 <div key={idx} style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'center', backgroundColor: '#f9f9f9', padding: '8px', borderRadius: '8px' }}>
-                  <img src={photo.url} alt={`운동사진 ${idx + 1}`} style={{ width: '65px', height: '65px', objectFit: 'cover', borderRadius: '6px' }} />
+                  <img src={photo.url} alt={`운동사진 ${idx + 1}`} style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '6px' }} />
                   <div style={{ flex: 1, fontSize: '12px', color: '#333' }}>
-                    <strong>사진 {idx + 1} 피드백:</strong>
-                    <div style={{ color: '#555', marginTop: '2px', wordBreak: 'break-all' }}>
-                      {photo.feedback || '피드백 미입력'}
+                    <strong style={{ color: '#2563eb' }}>사진 {idx + 1} 피드백:</strong>
+                    <div style={{ color: '#444', marginTop: '2px', wordBreak: 'break-all' }}>
+                      {photo.feedback || '등록된 피드백이 없습니다.'}
                     </div>
                   </div>
                 </div>
@@ -242,7 +288,7 @@ function App() {
           </div>
         </div>
 
-        {/* 하단 입력 폼 */}
+        {/* 하단 수정/입력 Form */}
         <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '14px', marginTop: '20px', color: '#111' }}>
           <h4 style={{ fontSize: '13px', fontWeight: '800', margin: '0 0 10px 0', color: '#2563eb' }}>📱 수업 중 실시간 입력 / 변경</h4>
           
@@ -287,7 +333,7 @@ function App() {
             </div>
           </div>
 
-          {/* 사진 첨부 & 사진 밑 피드백 작성 칸 */}
+          {/* 사진 첨부 및 각 사진 밑 피드백 작성 칸 */}
           <div style={{ borderTop: '1px solid #eee', paddingTop: '10px', marginBottom: '10px' }}>
             <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#111' }}>📷 운동 사진 첨부 및 개별 피드백 입력</label>
             <input type="file" accept="image/*" multiple onChange={handleImageUpload} style={{ ...inputStyle, marginTop: '4px', marginBottom: '8px' }} />
@@ -296,12 +342,12 @@ function App() {
               <div key={i} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px', marginBottom: '8px', backgroundColor: '#fafafa' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                   <img src={photo.url} alt={`사진 ${i + 1}`} style={{ width: '45px', height: '45px', objectFit: 'cover', borderRadius: '4px' }} />
-                  <span style={{ fontSize: '11px', fontWeight: 'bold' }}>사진 {i + 1} 피드백</span>
+                  <span style={{ fontSize: '11px', fontWeight: 'bold' }}>사진 {i + 1} 피드백 입력란</span>
                   <button onClick={() => handleRemovePhoto(i)} style={{ marginLeft: 'auto', color: 'red', border: 'none', background: 'none', cursor: 'pointer', fontSize: '11px' }}>삭제</button>
                 </div>
                 <input 
                   type="text" 
-                  placeholder="이 사진에 대한 피드백 입력 (예: 골반 기울임 주의)" 
+                  placeholder="이 사진 밑에 들어갈 피드백을 적어주세요 (예: 무릎 위치 주의)" 
                   value={photo.feedback} 
                   onChange={(e) => handlePhotoFeedbackChange(i, e.target.value)} 
                   style={inputStyle} 
@@ -312,19 +358,19 @@ function App() {
 
           {/* 메모 및 식단 작성 */}
           <div style={{ borderTop: '1px solid #eee', paddingTop: '10px' }}>
-            <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#111' }}>✍️ 메모 & 식단 피드백 입력</label>
+            <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#111' }}>✍️ 전체 메모 & 식단 피드백 입력</label>
             <textarea value={trainerMemo} onChange={(e) => setTrainerMemo(e.target.value)} placeholder="트레이너 메모" style={{ ...inputStyle, height: '40px', marginTop: '4px', marginBottom: '6px' }} />
             <textarea value={dietMemo} onChange={(e) => setDietMemo(e.target.value)} placeholder="식단 피드백" style={{ ...inputStyle, height: '40px' }} />
           </div>
         </div>
 
-        {/* 전송 & 저장 버튼 */}
+        {/* 전송 및 다운로드 버튼 */}
         <button 
           type="button" 
           onClick={handleShareToKakao}
           style={{ width: '100%', marginTop: '16px', padding: '16px', backgroundColor: '#fee500', color: '#000000', border: 'none', borderRadius: '10px', fontWeight: '800', fontSize: '15px', cursor: 'pointer' }}
         >
-          💬 카카오톡 대상 선택해서 전송하기
+          💬 카카오톡으로 PNG 이미지 리포트 바로 보내기
         </button>
 
         <button 
@@ -332,7 +378,7 @@ function App() {
           onClick={handleGenerateAndDownloadPng}
           style={{ width: '100%', marginTop: '10px', padding: '14px', backgroundColor: '#333333', color: '#ffffff', border: '1px solid #555555', borderRadius: '10px', fontWeight: '700', fontSize: '14px', cursor: 'pointer' }}
         >
-          📂 일지 PNG 이미지 저장
+          📂 PNG 이미지 파일로 저장
         </button>
 
       </div>
