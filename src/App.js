@@ -51,7 +51,7 @@ function App() {
     setMediaList((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // 카카오톡 전송 시 정돈된 형태의 메시지 생성
+  // 원래 방식: 모바일 기본 공유(카카오톡 전송) 및 클립보드 복사
   const handleShareKakao = () => {
     if (!member) {
       alert('회원 이름을 입력해 주세요.');
@@ -60,38 +60,34 @@ function App() {
 
     const exerciseDetails = exercises
       .filter((e) => e.name)
-      .map((e) => `▫️ ${e.name} : ${e.weight}kg | ${e.reps}회 | ${e.sets}세트`)
+      .map((e) => `• ${e.name}: ${e.weight}kg / ${e.reps}회 / ${e.sets}세트`)
       .join('\n');
 
     const progressPercent = Math.round((completedSessions / monthlyTarget) * 100);
 
     const shareText = 
-`==========================
-🏆 VIP PREMIUM PT REPORT
-==========================
-👤 회원명: ${member} 회원님 (${sessionCount}회차)
+`🏆 [VIP PT 리포트]
+👤 회원명: ${member}님 (${sessionCount}회차)
 💰 세션 가치: Premium PT (회당 100,000원)
-
-📊 [월간 목표 진행률]
-- 출석 및 달성: ${completedSessions}회 / ${monthlyTarget}회 (${progressPercent}%)
+📊 월간 목표 달성률: ${completedSessions}/${monthlyTarget}회 (${progressPercent}%)
 
 🏋️‍♂️ [오늘의 수행 운동]
-${exerciseDetails || '▫️ 기록된 운동 항목이 없습니다.'}
+${exerciseDetails || '기록 없음'}
 
-📝 [트레이너 코칭 피드백]
-${memo || '오늘도 수고 많으셨습니다! 다음 수업 때 뵙겠습니다.'}
+📝 [트레이너 피드백]
+${memo || '수고 많으셨습니다!'}
 
-📸 첨부 미디어: ${mediaList.length}개
-==========================`;
+📷 미디어 첨부: ${mediaList.length}건`;
 
     if (navigator.share) {
       navigator.share({
-        title: `${member}님 VIP PT 리포트`,
+        title: `${member}님 PT 리포트`,
         text: shareText,
+        url: window.location.href,
       }).catch(() => {});
     } else {
       navigator.clipboard.writeText(shareText);
-      alert('카카오톡으로 전송할 리포트 양식이 복사되었습니다. 대화창에 붙여넣기 해주세요!');
+      alert('리포트 요약 내용이 복사되었습니다! 카카오톡 대화창에 붙여넣기(Paste) 해주세요.');
     }
   };
 
@@ -101,12 +97,14 @@ ${memo || '오늘도 수고 많으셨습니다! 다음 수업 때 뵙겠습니�
     <div style={{ backgroundColor: '#0f172a', minHeight: '100vh', color: '#f8fafc', padding: '24px 16px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       <div style={{ maxWidth: '520px', margin: '0 auto', backgroundColor: '#1e293b', borderRadius: '16px', border: '1px solid #334155', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)' }}>
         
+        {/* 헤더 */}
         <div style={{ textAlign: 'center', marginBottom: '28px', borderBottom: '1px solid #334155', paddingBottom: '16px' }}>
           <span style={{ backgroundColor: '#f59e0b', color: '#000', fontSize: '11px', fontWeight: '800', padding: '3px 8px', borderRadius: '12px', letterSpacing: '1px' }}>PREMIUM PT REPORT</span>
           <h1 style={{ fontSize: '22px', fontWeight: '700', marginTop: '8px', color: '#ffffff' }}>VIP 퍼스널 트레이닝 리포트</h1>
           <p style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>단일 회당 100,000원 상당의 맞춤형 케어 서비스</p>
         </div>
 
+        {/* 회원 정보 & 회차 */}
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '20px' }}>
           <div>
             <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>회원명</label>
@@ -129,6 +127,7 @@ ${memo || '오늘도 수고 많으셨습니다! 다음 수업 때 뵙겠습니�
           </div>
         </div>
 
+        {/* 월간 목표 진행 상황 */}
         <div style={{ backgroundColor: '#0f172a', padding: '16px', borderRadius: '12px', border: '1px solid #334155', marginBottom: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px' }}>
             <span style={{ color: '#cbd5e1', fontWeight: '600' }}>📊 월간 출석 및 목표 달성률</span>
@@ -155,6 +154,7 @@ ${memo || '오늘도 수고 많으셨습니다! 다음 수업 때 뵙겠습니�
           </div>
         </div>
 
+        {/* 운동 세부 정보 */}
         <div style={{ marginBottom: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <label style={{ fontSize: '14px', fontWeight: '700', color: '#f8fafc' }}>🏋️‍♂️ 세부 운동 기록</label>
@@ -210,6 +210,7 @@ ${memo || '오늘도 수고 많으셨습니다! 다음 수업 때 뵙겠습니�
           ))}
         </div>
 
+        {/* 코칭 피드백 */}
         <div style={{ marginBottom: '24px' }}>
           <label style={{ fontSize: '14px', fontWeight: '700', color: '#f8fafc', display: 'block', marginBottom: '8px' }}>📝 수업 총평 및 코칭 피드백</label>
           <textarea 
@@ -221,6 +222,7 @@ ${memo || '오늘도 수고 많으셨습니다! 다음 수업 때 뵙겠습니�
           />
         </div>
 
+        {/* 미디어 첨부 */}
         <div style={{ marginBottom: '28px' }}>
           <label style={{ fontSize: '14px', fontWeight: '700', color: '#f8fafc', display: 'block', marginBottom: '8px' }}>📷 운동 미디어 첨부 (여러 장 가능)</label>
           <label 
@@ -273,6 +275,7 @@ ${memo || '오늘도 수고 많으셨습니다! 다음 수업 때 뵙겠습니�
           ))}
         </div>
 
+        {/* 카카오톡 전송 버튼 */}
         <button 
           type="button" 
           onClick={handleShareKakao}
@@ -293,7 +296,7 @@ ${memo || '오늘도 수고 많으셨습니다! 다음 수업 때 뵙겠습니�
             boxShadow: '0 4px 12px rgba(254, 229, 0, 0.2)'
           }}
         >
-          💬 카카오톡 전송 양식 복사 및 전송
+          💬 카카오톡으로 리포트 전송하기
         </button>
 
       </div>
