@@ -18,10 +18,9 @@ function App() {
   const [avgHeartRate, setAvgHeartRate] = useState('126');
   const [intensity, setIntensity] = useState('중상');
 
-  // 3. 메모 및 식단
+  // 3. 메모 및 식단 피드백
   const [trainerMemo, setTrainerMemo] = useState('스쿼트 시 무릎 안정성 주의. 척추 중립 잘 유지됨.');
   const [dietMemo, setDietMemo] = useState('아침: 사과 1개, 계란 2개\n점심: 닭가슴살 볶음밥\n저녁: 연어 샐러드');
-  const [monthlyCheck, setMonthlyCheck] = useState('출석 및 식단 준수 상태 매우 양호함!');
 
   // 4. 운동 종목 목록
   const [exercises, setExercises] = useState([
@@ -59,12 +58,12 @@ function App() {
     });
   };
 
-  // 💬 카카오톡 공유 (수치, 종목, 메모 포함 전송)
+  // 💬 카카오톡 공유 (대화상대 선택)
   const handleShareToKakao = async () => {
     const exText = exercises.map(ex => `• ${ex.name}: ${ex.weight}kg / ${ex.sets}세트 ${ex.reps}회`).join('\n');
     const shareData = {
       title: `${memberName} PT 리포트`,
-      text: `[PREMIUM PT 리포트]\n👤 회원명: ${memberName}\n📅 날짜: ${date}\n\n📊 [운동 요약]\n🔥 ${calories}kcal | 🕒 ${duration}분 | ❤️ 심박수: ${avgHeartRate}bpm | 강도: ${intensity}\n\n🏋️‍♂️ [수행 운동]\n${exText}\n\n✍️ [트레이너 메모]\n${trainerMemo}\n\n오늘도 수고하셨습니다! 👍`
+      text: `[PREMIUM PT 리포트]\n👤 회원명: ${memberName}\n📅 날짜: ${date}\n\n📊 [운동 요약]\n🔥 ${calories}kcal | 🕒 ${duration}분 | ❤️ 심박수: ${avgHeartRate}bpm | 강도: ${intensity}\n\n🏋️‍♂️ [수행 운동]\n${exText}\n\n✍️ [트레이너 메모]\n${trainerMemo}\n\n🥗 [식단 피드백]\n${dietMemo}\n\n오늘도 수고하셨습니다! 👍`
     };
 
     if (navigator.share) {
@@ -79,14 +78,14 @@ function App() {
     }
   };
 
-  // 📂 PNG 이미지 생성 및 저장
+  // 📂 PNG 이미지 생성 및 다운로드
   const handleGenerateAndDownloadPng = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     canvas.width = 540;
-    canvas.height = 850;
+    canvas.height = 900;
 
     ctx.fillStyle = '#f2efea';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -101,26 +100,26 @@ function App() {
 
     // 신체 수치 카드
     ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.roundRect(28, 90, 484, 70, 10); ctx.fill();
-    ctx.fillStyle = '#111111'; ctx.font = 'bold 13px -apple-system, sans-serif';
-    ctx.fillText(`체중: ${weight}kg (목표: ${targetWeight}kg) | 체지방: ${bodyFat}% | 골격근: ${muscle}kg`, 42, 130);
+    ctx.beginPath(); ctx.roundRect(28, 90, 484, 60, 10); ctx.fill();
+    ctx.fillStyle = '#111111'; ctx.font = 'bold 12px -apple-system, sans-serif';
+    ctx.fillText(`체중: ${weight}kg (목표: ${targetWeight}kg) | 체지방: ${bodyFat}% | 골격근: ${muscle}kg`, 42, 125);
 
     // 운동 요약 박스
     ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.roundRect(28, 170, 484, 60, 10); ctx.fill();
-    ctx.fillStyle = '#111111'; ctx.font = 'bold 13px -apple-system, sans-serif';
-    ctx.fillText(`🔥 ${calories} kcal  |  🕒 ${duration} 분  |  ❤️ 심박수: ${avgHeartRate} bpm  |  📊 강도: ${intensity}`, 42, 205);
+    ctx.beginPath(); ctx.roundRect(28, 160, 484, 60, 10); ctx.fill();
+    ctx.fillStyle = '#111111'; ctx.font = 'bold 12px -apple-system, sans-serif';
+    ctx.fillText(`🔥 ${calories} kcal  |  🕒 ${duration} 분  |  ❤️ 심박수: ${avgHeartRate} bpm  |  📊 강도: ${intensity}`, 42, 195);
 
-    // 운동 기록
-    ctx.fillStyle = '#111111'; ctx.font = 'bold 15px -apple-system, sans-serif';
-    ctx.fillText('오늘 수행한 운동', 28, 260);
+    // 수행 운동
+    ctx.fillStyle = '#111111'; ctx.font = 'bold 14px -apple-system, sans-serif';
+    ctx.fillText('오늘 수행한 운동', 28, 245);
 
-    let startY = 280;
+    let startY = 260;
     exercises.forEach((ex) => {
-      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(28, startY, 484, 40, 8); ctx.fill();
-      ctx.fillStyle = '#111111'; ctx.font = 'bold 13px -apple-system, sans-serif';
-      ctx.fillText(`• ${ex.name} - ${ex.weight}kg / ${ex.sets}세트 ${ex.reps}회`, 42, startY + 25);
-      startY += 50;
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.roundRect(28, startY, 484, 36, 8); ctx.fill();
+      ctx.fillStyle = '#111111'; ctx.font = '12px -apple-system, sans-serif';
+      ctx.fillText(`• ${ex.name} - ${ex.weight}kg / ${ex.sets}세트 ${ex.reps}회`, 42, startY + 22);
+      startY += 44;
     });
 
     // 다운로드
@@ -141,17 +140,17 @@ function App() {
         
         <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-        {/* 상단 타이틀 */}
+        {/* 헤더 */}
         <div style={{ borderBottom: '1px solid #333333', paddingBottom: '12px', marginBottom: '20px' }}>
           <span style={{ fontSize: '11px', color: '#d4af37', fontWeight: '800' }}>PREMIUM PT REPORT</span>
           <h1 style={{ fontSize: '22px', fontWeight: '800', margin: '4px 0', color: '#ffffff' }}>VIP 퍼스널 트레이닝 리포트</h1>
         </div>
 
-        {/* 메인 리포트 카드 (크림색 테마) */}
+        {/* 상단 메인 리포트 카드 (크림색 테마) */}
         <div style={{ backgroundColor: '#f2efea', borderRadius: '14px', padding: '20px', color: '#111111' }}>
           <h2 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '12px' }}>🏋️‍♂️ {memberName} PT 리포트</h2>
           
-          {/* 신체 기록표 */}
+          {/* 신체 기록 */}
           <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '12px', marginBottom: '10px' }}>
             <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>📊 현재 신체 기록표</div>
             <div style={{ fontSize: '12px', color: '#444' }}>
@@ -159,7 +158,7 @@ function App() {
             </div>
           </div>
 
-          {/* 오늘의 운동 요약 (심박수 포함) */}
+          {/* 운동 요약 (심박수 포함) */}
           <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '12px', marginBottom: '10px' }}>
             <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>🔥 오늘의 운동 요약</div>
             <div style={{ fontSize: '12px', color: '#444' }}>
@@ -177,7 +176,7 @@ function App() {
             ))}
           </div>
 
-          {/* 사진 목록 */}
+          {/* 첨부 사진 */}
           {images.length > 0 && (
             <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '12px', marginBottom: '10px' }}>
               <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>📸 첨부된 운동 사진</div>
@@ -189,7 +188,7 @@ function App() {
             </div>
           )}
 
-          {/* 트레이너 메모 & 식단 */}
+          {/* 메모 & 식단 */}
           <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '12px', marginBottom: '10px', fontSize: '12px' }}>
             <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>✍️ 트레이너 메모</div>
             <div style={{ color: '#555', whitespace: 'pre-wrap' }}>{trainerMemo}</div>
@@ -201,23 +200,27 @@ function App() {
           </div>
         </div>
 
-        {/* 📱 수업 중 실시간 입력창 (모든 기능 탑재) */}
+        {/* 📱 수업 중 하단 실시간 입력창 (모든 기능 탑재) */}
         <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '14px', marginTop: '20px', color: '#111' }}>
-          <h4 style={{ fontSize: '13px', fontWeight: '800', margin: '0 0 10px 0', color: '#2563eb' }}>📱 수업 중 즉시 입력 / 수정</h4>
+          <h4 style={{ fontSize: '13px', fontWeight: '800', margin: '0 0 10px 0', color: '#2563eb' }}>📱 수업 중 실시간 입력 / 변경</h4>
           
-          {/* 1. 기본 정보 수정 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+          {/* 기본 정보 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', marginBottom: '10px' }}>
             <div>
               <label style={{ fontSize: '10px', color: '#666' }}>회원명</label>
               <input type="text" value={memberName} onChange={(e) => setMemberName(e.target.value)} style={inputStyle} />
             </div>
             <div>
-              <label style={{ fontSize: '10px', color: '#666' }}>담당 트레이너</label>
+              <label style={{ fontSize: '10px', color: '#666' }}>트레이너</label>
               <input type="text" value={trainerName} onChange={(e) => setTrainerName(e.target.value)} style={inputStyle} />
+            </div>
+            <div>
+              <label style={{ fontSize: '10px', color: '#666' }}>날짜</label>
+              <input type="text" value={date} onChange={(e) => setDate(e.target.value)} style={inputStyle} />
             </div>
           </div>
 
-          {/* 2. 신체 수치 & 운동 수치 (심박수 포함) */}
+          {/* 신체 & 운동 수치 */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '6px', marginBottom: '10px' }}>
             <div><label style={{ fontSize: '10px', color: '#666' }}>체중</label><input type="text" value={weight} onChange={(e) => setWeight(e.target.value)} style={inputStyle} /></div>
             <div><label style={{ fontSize: '10px', color: '#666' }}>목표</label><input type="text" value={targetWeight} onChange={(e) => setTargetWeight(e.target.value)} style={inputStyle} /></div>
@@ -232,18 +235,17 @@ function App() {
             <div><label style={{ fontSize: '10px', color: '#666' }}>강도</label><input type="text" value={intensity} onChange={(e) => setIntensity(e.target.value)} style={inputStyle} /></div>
           </div>
 
-          {/* 3. 종목 추가하기 */}
+          {/* 종목 추가 */}
           <div style={{ borderTop: '1px solid #eee', paddingTop: '10px', marginBottom: '10px' }}>
-            <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#111' }}>🏋️‍♂️ 오늘 PT 운동 추가</label>
+            <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#111' }}>🏋️‍♂️ 오늘 PT 운동 종목 추가</label>
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '6px', marginTop: '4px' }}>
               <input type="text" placeholder="종목명" value={newExName} onChange={(e) => setNewExName(e.target.value)} style={inputStyle} />
               <input type="text" placeholder="kg" value={newExWeight} onChange={(e) => setNewExWeight(e.target.value)} style={inputStyle} />
               <input type="text" placeholder="세트" value={newExSets} onChange={(e) => setNewExSets(e.target.value)} style={inputStyle} />
               <input type="text" placeholder="회" value={newExReps} onChange={(e) => setNewExReps(e.target.value)} style={inputStyle} />
             </div>
-            <button onClick={handleAddExercise} style={{ width: '100%', marginTop: '6px', padding: '6px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>+ 종목 추가하기</button>
+            <button onClick={handleAddExercise} style={{ width: '100%', marginTop: '6px', padding: '6px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>+ 운동 추가하기</button>
             
-            {/* 현재 등록된 종목 삭제 리스트 */}
             <div style={{ marginTop: '8px' }}>
               {exercises.map((ex, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#555', padding: '2px 0' }}>
@@ -254,21 +256,21 @@ function App() {
             </div>
           </div>
 
-          {/* 4. 사진 추가 */}
+          {/* 사진 파일 선택 */}
           <div style={{ borderTop: '1px solid #eee', paddingTop: '10px', marginBottom: '10px' }}>
-            <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#111' }}>📷 운동 사진/미디어 첨부</label>
+            <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#111' }}>📷 운동 사진 첨부</label>
             <input type="file" accept="image/*" multiple onChange={handleImageUpload} style={{ ...inputStyle, marginTop: '4px' }} />
           </div>
 
-          {/* 5. 메모 작성 */}
+          {/* 메모 및 식단 작성 */}
           <div style={{ borderTop: '1px solid #eee', paddingTop: '10px' }}>
-            <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#111' }}>✍️ 메모 & 식단 피드백</label>
+            <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#111' }}>✍️ 메모 & 식단 피드백 입력</label>
             <textarea value={trainerMemo} onChange={(e) => setTrainerMemo(e.target.value)} placeholder="트레이너 메모" style={{ ...inputStyle, height: '40px', marginTop: '4px', marginBottom: '6px' }} />
             <textarea value={dietMemo} onChange={(e) => setDietMemo(e.target.value)} placeholder="식단 피드백" style={{ ...inputStyle, height: '40px' }} />
           </div>
         </div>
 
-        {/* 전송 및 저장 버튼 */}
+        {/* 카카오톡 공유 & 이미지 저장 버튼 */}
         <button 
           type="button" 
           onClick={handleShareToKakao}
