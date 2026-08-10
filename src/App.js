@@ -4,18 +4,18 @@ function App() {
   const canvasRef = useRef(null);
 
   // 1. 기본 회원 정보
-  const [memberName, setMemberName] = useState('김준우 회원님');
-  const [trainerName, setTrainerName] = useState('황승준');
-  const [date, setDate] = useState('2024.05.23 (목)');
+  const [memberName] = useState('김준우 회원님');
+  const [trainerName] = useState('황승준');
+  const [date] = useState('2024.05.23 (목)');
 
-  // 2. 운동 요약 (심박수 추가)
+  // 2. 운동 요약 (심박수 포함)
   const [calories, setCalories] = useState('420');
   const [duration, setDuration] = useState('60');
   const [avgHeartRate, setAvgHeartRate] = useState('126');
   const [intensity, setIntensity] = useState('중상');
 
   // 3. 운동 세부 기록
-  const [exercises, setExercises] = useState([
+  const [exercises] = useState([
     {
       name: '1. 덤벨 로우 (Dumbbell Row)',
       sets: [
@@ -33,7 +33,7 @@ function App() {
     }
   ]);
 
-  // 카카오톡 / 스마트폰 대상 선택 공유창 팝업
+  // 카카오톡 공유 (대화상대 선택 창 팝업)
   const handleShareToKakao = async () => {
     const shareData = {
       title: `${memberName} PT 운동 일지`,
@@ -52,7 +52,7 @@ function App() {
     }
   };
 
-  // PNG 이미지 파일 자동 저장
+  // PNG 이미지 파일 저장
   const handleGenerateAndDownloadPng = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
